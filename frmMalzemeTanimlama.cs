@@ -773,7 +773,9 @@ namespace MALZEME_TAKIP_SISTEMI
                         ev.Graphics.DrawImage(barcodeImage, marginX, marginY, barcodeWidth, barcodeHeight);
                     }
 
-                    string[] rafBilgileri = clGenelTanim.DBToString(row["MALZEME RAF NO"]).Split('-');
+                    var rafNo = clGenelTanim.DBToString(row["MALZEME RAF NO"]) ?? "";
+                    string[] rafBilgileri = rafNo.Split('-');
+
                     string strRa = rafBilgileri.Length > 0 ? rafBilgileri[0] : "";
                     string strRow = rafBilgileri.Length > 1 ? rafBilgileri[1] : "";
                     string strCo = rafBilgileri.Length > 2 ? rafBilgileri[2] : "";
@@ -857,11 +859,15 @@ namespace MALZEME_TAKIP_SISTEMI
                                        float x, float y, float labelWidth, float valueWidth,
                                        float height, StringFormat format)
         {
-            g.DrawString(label, new Font("Arial", 8.5f, FontStyle.Bold),
-            Brushes.Black, new RectangleF(x, y, labelWidth, height), format);
-            g.DrawString(value, new Font("Arial", 8.5f, FontStyle.Bold),
-                         Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, 10), format);
-            Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, height), format);
+
+            using (var font = new Font("Arial", 8.5f, FontStyle.Bold))
+            {
+                g.DrawString(label, font, Brushes.Black,
+                    new RectangleF(x, y, labelWidth, height), format);
+
+                g.DrawString(value ?? "", font, Brushes.Black,
+                    new RectangleF(x + labelWidth, y, valueWidth, height), format);
+            }
         }
 
         private void ApplyBarcodeLabelSettings(PrintDocument document)
