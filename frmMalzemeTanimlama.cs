@@ -695,148 +695,6 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void barkodYazdirToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //try
-            //{
-            //    if (this.gridViewMalzemeListesi.SelectedRowsCount == 0)
-            //    {
-            //        MessageBox.Show("Lütfen yazdırmak için en az bir satır seçin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            //        return;
-            //    }
-
-            //    // Yazıcı seçim dialogu ekleyelim
-            //    PrintDialog printDialog = new PrintDialog();
-            //    PrintDocument document = new PrintDocument();
-            //    printDialog.Document = document;
-
-            //    if (printDialog.ShowDialog() != DialogResult.OK)
-            //        return;
-
-            //    int[] selectedRows = gridViewMalzemeListesi.GetSelectedRows();
-            //    int currentIndex = 0;
-
-            //    document.PrintPage += (s, ev) =>
-            //    {
-            //        // Sayfa ayarları
-            //        ev.PageSettings.Margins = new Margins(1, 1, 1, 1);
-            //        ev.Graphics.PageUnit = GraphicsUnit.Millimeter;
-
-            //        // Seçili satır verilerini al
-            //        DataRow row = gridViewMalzemeListesi.GetDataRow(selectedRows[currentIndex]);
-
-            //        // Format ayarları
-            //        StringFormat centerFormat = new StringFormat { Alignment = StringAlignment.Center };
-            //        StringFormat leftFormat = new StringFormat { Alignment = StringAlignment.Near };
-
-
-            //        string materyel = clGenelTanim.DBToString(row["MALZEME MATERYEL NO"]) ?? "";
-
-            //        if (!string.IsNullOrEmpty(materyel))
-            //        {
-            //            for (int j = 1; j < materyel.Length; j += 3)
-            //            {
-            //                try
-            //                {
-            //                    materyel = materyel.Insert(j, "  ");
-            //                }
-            //                catch (ArgumentOutOfRangeException)
-            //                {
-            //                    break; // Döngüyü güvenli şekilde sonlandır
-            //                }
-            //            }
-            //        }
-
-            //        // Raf bilgilerini ayır
-            //        string[] rafBilgileri = clGenelTanim.DBToString(row["MALZEME RAF NO"]).Split('-');
-            //        string strRa = rafBilgileri.Length > 0 ? rafBilgileri[0] : "";
-            //        string strRow = rafBilgileri.Length > 1 ? rafBilgileri[1] : "";
-            //        string strCo = rafBilgileri.Length > 2 ? rafBilgileri[2] : "";
-
-            //        // Barkod oluşturma (ZXing.Net kütüphanesi gerektirir)
-
-            //        var barcodeWriter = new BarcodeWriter
-            //        {
-            //            Format = BarcodeFormat.CODE_128,
-            //            Options = new EncodingOptions
-            //            {
-            //                Height = 40,
-            //                Width = 200,
-            //                Margin = 0,
-            //                PureBarcode = true
-            //            }
-            //        };
-
-            //        var barcodeImage = barcodeWriter.Write(clGenelTanim.DBToString(row["MALZEME MATERYEL NO"]));
-            //        ev.Graphics.DrawImage(barcodeImage, 10, 10, 190, 40);
-
-
-            //        // Yazdırma işlemleri
-            //        // Materyel No
-            //        ev.Graphics.DrawString(materyel, new Font("Arial", 14, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(0, 5, 230, 18), centerFormat);
-
-            //        // Raf bilgileri
-            //        ev.Graphics.DrawString("Ra:", new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(220, 10, 40, 28), centerFormat);
-            //        ev.Graphics.DrawString(strRa, new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(243.5f, 10, 40, 28), centerFormat);
-
-            //        ev.Graphics.DrawString("Ro:", new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(220, 20, 40, 28), centerFormat);
-            //        ev.Graphics.DrawString(strRow, new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(243.5f, 20, 40, 28), centerFormat);
-
-            //        ev.Graphics.DrawString("Co:", new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(220, 30, 40, 28), centerFormat);
-            //        ev.Graphics.DrawString(strCo, new Font("Arial", 8, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(243.5f, 30, 40, 28), centerFormat);
-
-            //        // Malzeme bilgileri
-            //        ev.Graphics.DrawString(clGenelTanim.DBToString(row["MALZEME ADI"]),
-            //                             new Font("Arial", 7.5f, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(10, 40, 425, 25), leftFormat);
-
-            //        ev.Graphics.DrawString(clGenelTanim.DBToString(row["MALZEME PARÇA NO"]),
-            //                             new Font("Arial", 7.5f, FontStyle.Bold),
-            //                             Brushes.Black, new RectangleF(10, 50, 425, 25), leftFormat);
-
-            //        // Stok ve fiyat bilgileri
-            //        DrawLabelAndValue(ev.Graphics, "Min:", clGenelTanim.DBToString(row["MALZEME MİN ADET"]),
-            //                        10, 60, 40, 45, leftFormat);
-            //        DrawLabelAndValue(ev.Graphics, "Max:", clGenelTanim.DBToString(row["MALZEME MAX ADET"]),
-            //                        90, 60, 40, 45, leftFormat);
-            //        DrawLabelAndValue(ev.Graphics, "Fiyat:", clGenelTanim.DBToString(row["MALZEME GİRİŞ B.FİYAT"]),
-            //                        160, 60, 40, 50, leftFormat);
-
-            //        // Fiyat cinsi (konum fiyat uzunluğuna göre ayarlanmış)
-            //        string fiyatCinsi = clGenelTanim.DBToString(row["MALZEME GİRİŞ P.BİRİMİ"]);
-            //        float fiyatCinsiX = 230f;
-            //        int fiyatUzunluk = clGenelTanim.DBToString(row["MALZEME GİRİŞ B.FİYAT"]).Length;
-            //        fiyatCinsiX -= (7 - fiyatUzunluk) * 5; // Uzunluğa göre pozisyon ayarla
-
-            //        if (!string.IsNullOrEmpty(fiyatCinsi))
-            //        {
-            //            ev.Graphics.DrawString(fiyatCinsi, new Font("Arial", 8.5f, FontStyle.Bold),
-            //                                 Brushes.Black, new RectangleF(fiyatCinsiX, 60, 45, 25), leftFormat);
-            //        }
-
-            //        // Sonraki sayfa kontrolü
-            //        currentIndex++;
-            //        ev.HasMorePages = currentIndex < selectedRows.Length;
-            //    };
-
-            //    document.Print();
-            //}
-            //catch (InvalidPrinterException ex)
-            //{
-            //    MessageBox.Show("Geçersiz yazıcı ayarı: " + ex.Message, "Yazıcı Hatası",
-            //                   MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show("Hata oluştu: " + ex.Message, "Hata",
-            //                   MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //}
-
             try
             {
                 if (this.gridViewMalzemeListesi.SelectedRowsCount == 0)
@@ -895,10 +753,7 @@ namespace MALZEME_TAKIP_SISTEMI
                     float rightColumnWidth = 16f;
                     float columnGap = 2f;
                     float barcodeHeight = contentHeight * 0.45f;
-                    float barcodeAreaWidth = Math.Max(1f, contentWidth - rightColumnWidth - columnGap);
-                    float barcodeWidth = barcodeAreaWidth;
-                    float barcodeX = marginX + ((barcodeAreaWidth - barcodeWidth) / 2f);
-                    float materialTextHeight = 4f;
+                    float barcodeWidth = Math.Max(1f, contentWidth - rightColumnWidth - columnGap);
 
                     var barcodeWriter = new BarcodeWriter
                     {
@@ -912,14 +767,10 @@ namespace MALZEME_TAKIP_SISTEMI
                         }
                     };
 
-                    ev.Graphics.DrawString(materyelRaw, new Font("Arial", 8.5f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(marginX, marginY, contentWidth, materialTextHeight), centerFormat);
-
-                    float barcodeY = marginY + materialTextHeight + 1f;
                     if (!string.IsNullOrWhiteSpace(materyelRaw))
                     {
                         var barcodeImage = barcodeWriter.Write(materyelRaw);
-                        ev.Graphics.DrawImage(barcodeImage, barcodeX, barcodeY, barcodeWidth, barcodeHeight);
+                        ev.Graphics.DrawImage(barcodeImage, marginX, marginY, barcodeWidth, barcodeHeight);
                     }
 
                     string[] rafBilgileri = clGenelTanim.DBToString(row["MALZEME RAF NO"]).Split('-');
@@ -927,8 +778,8 @@ namespace MALZEME_TAKIP_SISTEMI
                     string strRow = rafBilgileri.Length > 1 ? rafBilgileri[1] : "";
                     string strCo = rafBilgileri.Length > 2 ? rafBilgileri[2] : "";
 
-                    float rightX = marginX + barcodeAreaWidth + columnGap;
-                    float rightY = barcodeY + 2f;
+                    float rightX = marginX + barcodeWidth + columnGap;
+                    float rightY = marginY + 2f;
                     float rightRowHeight = 6f;
                     ev.Graphics.DrawString("Ra:", new Font("Arial", 7.5f, FontStyle.Bold),
                         Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
@@ -945,7 +796,14 @@ namespace MALZEME_TAKIP_SISTEMI
                     ev.Graphics.DrawString(strCo, new Font("Arial", 8f, FontStyle.Bold),
                         Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
 
-                    float currentY = barcodeY + barcodeHeight + 1f;
+                    float currentY = marginY + barcodeHeight + 1f;
+
+                    ev.Graphics.DrawString(materyelRaw, new Font("Arial", 8.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(marginX, currentY, contentWidth, 4f), centerFormat);
+
+                    currentY += 4.5f;
+                    ev.Graphics.DrawLine(Pens.Gray, marginX, currentY, marginX + contentWidth, currentY);
+                    currentY += 1.5f;
 
                     ev.Graphics.DrawString(clGenelTanim.DBToString(row["MALZEME ADI"]),
                         new Font("Arial", 8f, FontStyle.Bold),
@@ -1000,9 +858,10 @@ namespace MALZEME_TAKIP_SISTEMI
                                        float height, StringFormat format)
         {
             g.DrawString(label, new Font("Arial", 8.5f, FontStyle.Bold),
-                         Brushes.Black, new RectangleF(x, y, labelWidth, height), format);
+            Brushes.Black, new RectangleF(x, y, labelWidth, height), format);
             g.DrawString(value, new Font("Arial", 8.5f, FontStyle.Bold),
-                         Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, height), format);
+                         Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, 10), format);
+            Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, height), format);
         }
 
         private void ApplyBarcodeLabelSettings(PrintDocument document)
@@ -1015,7 +874,6 @@ namespace MALZEME_TAKIP_SISTEMI
                 (int)Math.Round(heightMm * mmToHundredthsInch));
             document.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
         }
-
 
 
         private void comboBoxEditMalzemeAnaGrubu_SelectedIndexChanged(object sender, EventArgs e)
