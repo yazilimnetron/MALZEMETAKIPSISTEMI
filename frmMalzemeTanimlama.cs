@@ -847,6 +847,7 @@ namespace MALZEME_TAKIP_SISTEMI
 
                 PrintDialog printDialog = new PrintDialog();
                 PrintDocument document = new PrintDocument();
+                ApplyBarcodeLabelSettings(document);
                 printDialog.Document = document;
 
                 if (printDialog.ShowDialog() != DialogResult.OK)
@@ -857,10 +858,15 @@ namespace MALZEME_TAKIP_SISTEMI
 
                 document.PrintPage += (s, ev) =>
                 {
-                    ev.PageSettings.Margins = new Margins(5, 5, 5, 5);
                     ev.Graphics.PageUnit = GraphicsUnit.Millimeter;
 
                     DataRow row = gridViewMalzemeListesi.GetDataRow(selectedRows[currentIndex]);
+                    if (row == null)
+                    {
+                        currentIndex++;
+                        ev.HasMorePages = currentIndex < selectedRows.Length;
+                        return;
+                    }
 
                     StringFormat centerFormat = new StringFormat { Alignment = StringAlignment.Center };
                     StringFormat leftFormat = new StringFormat { Alignment = StringAlignment.Near };
@@ -877,51 +883,98 @@ namespace MALZEME_TAKIP_SISTEMI
                         }
                     }
 
+                    const float hundredthsInchToMm = 25.4f / 100f;
+                    float pageWidth = ev.PageSettings.PaperSize.Width * hundredthsInchToMm;
+                    float pageHeight = ev.PageSettings.PaperSize.Height * hundredthsInchToMm;
+
+                    float marginX = 3f;
+                    float marginY = 3f;
+                    float contentWidth = Math.Max(1f, pageWidth - (marginX * 2));
+                    float contentHeight = Math.Max(1f, pageHeight - (marginY * 2));
+
+                    float rightColumnWidth = 16f;
+                    float columnGap = 2f;
+                    float barcodeHeight = contentHeight * 0.45f;
+                    float barcodeAreaWidth = Math.Max(1f, contentWidth - rightColumnWidth - columnGap);
+                    float barcodeWidth = barcodeAreaWidth;
+                    float barcodeX = marginX + ((barcodeAreaWidth - barcodeWidth) / 2f);
+                    float materialTextHeight = 4f;
+
                     var barcodeWriter = new BarcodeWriter
                     {
                         Format = BarcodeFormat.CODE_128,
                         Options = new EncodingOptions
                         {
-                            Height = 40,
-                            Width = 180,
+                            Height = (int)Math.Max(1f, barcodeHeight),
+                            Width = (int)Math.Max(1f, barcodeWidth),
                             Margin = 0,
                             PureBarcode = true
                         }
                     };
 
-                    var barcodeImage = barcodeWriter.Write(materyelRaw);
-                    ev.Graphics.DrawImage(barcodeImage, 15, 5, 180, 40);
+                    ev.Graphics.DrawString(materyelRaw, new Font("Arial", 8.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(marginX, marginY, contentWidth, materialTextHeight), centerFormat);
 
-                    // Barkod numarası
-                    ev.Graphics.DrawString(materyelRaw, new Font("Arial", 10, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(0, 47, 210, 10), centerFormat);
+                    float barcodeY = marginY + materialTextHeight + 1f;
+                    if (!string.IsNullOrWhiteSpace(materyelRaw))
+                    {
+                        var barcodeImage = barcodeWriter.Write(materyelRaw);
+                        ev.Graphics.DrawImage(barcodeImage, barcodeX, barcodeY, barcodeWidth, barcodeHeight);
+                    }
 
-                    // Ayırıcı çizgi
-                    ev.Graphics.DrawLine(Pens.Gray, 10, 59, 200, 59);
+                    string[] rafBilgileri = clGenelTanim.DBToString(row["MALZEME RAF NO"]).Split('-');
+                    string strRa = rafBilgileri.Length > 0 ? rafBilgileri[0] : "";
+                    string strRow = rafBilgileri.Length > 1 ? rafBilgileri[1] : "";
+                    string strCo = rafBilgileri.Length > 2 ? rafBilgileri[2] : "";
 
-                    // Malzeme Adı
+                    float rightX = marginX + barcodeAreaWidth + columnGap;
+                    float rightY = barcodeY + 2f;
+                    float rightRowHeight = 6f;
+                    ev.Graphics.DrawString("Ra:", new Font("Arial", 7.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
+                    ev.Graphics.DrawString(strRa, new Font("Arial", 8f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
+                    rightY += rightRowHeight;
+                    ev.Graphics.DrawString("Ro:", new Font("Arial", 7.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
+                    ev.Graphics.DrawString(strRow, new Font("Arial", 8f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
+                    rightY += rightRowHeight;
+                    ev.Graphics.DrawString("Co:", new Font("Arial", 7.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
+                    ev.Graphics.DrawString(strCo, new Font("Arial", 8f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
+
+                    float currentY = barcodeY + barcodeHeight + 1f;
+
                     ev.Graphics.DrawString(clGenelTanim.DBToString(row["MALZEME ADI"]),
-                        new Font("Arial", 9, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(10, 63, 180, 10), leftFormat);
+                        new Font("Arial", 8f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(marginX, currentY, contentWidth, 4f), leftFormat);
+                    currentY += 4.5f;
 
-                    // Parça No
                     ev.Graphics.DrawString(clGenelTanim.DBToString(row["MALZEME PARÇA NO"]),
-                        new Font("Arial", 8, FontStyle.Regular),
-                        Brushes.Black, new RectangleF(10, 70, 180, 10), leftFormat);
+                        new Font("Arial", 7f, FontStyle.Regular),
+                        Brushes.Black, new RectangleF(marginX, currentY, contentWidth, 4f), leftFormat);
+                    currentY += 4.5f;
 
-                    // Min, Max, Fiyat
+                    float labelRowHeight = 4f;
+                    float labelWidth = contentWidth * 0.2f;
+                    float valueWidth = contentWidth * 0.25f;
+
                     DrawLabelAndValue(ev.Graphics, "Min:", clGenelTanim.DBToString(row["MALZEME MİN ADET"]),
-                        10, 85, 20, 25, leftFormat);
+                        marginX, currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
                     DrawLabelAndValue(ev.Graphics, "Max:", clGenelTanim.DBToString(row["MALZEME MAX ADET"]),
-                        70, 85, 20, 25, leftFormat);
+                        marginX + (contentWidth * 0.36f), currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
                     DrawLabelAndValue(ev.Graphics, "Fiyat:", clGenelTanim.DBToString(row["MALZEME GİRİŞ B.FİYAT"]),
-                        130, 85, 25, 30, leftFormat);
+                        marginX + (contentWidth * 0.7f), currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
 
                     string fiyatCinsi = clGenelTanim.DBToString(row["MALZEME GİRİŞ P.BİRİMİ"]);
                     if (!string.IsNullOrEmpty(fiyatCinsi))
                     {
-                        ev.Graphics.DrawString(fiyatCinsi, new Font("Arial", 8.5f, FontStyle.Bold),
-                            Brushes.Black, new RectangleF(165, 85, 25, 10), leftFormat);
+                        ev.Graphics.DrawString(fiyatCinsi, new Font("Arial", 7.5f, FontStyle.Bold),
+                            Brushes.Black,
+                            new RectangleF(marginX + (contentWidth * 0.9f), currentY, contentWidth * 0.1f, labelRowHeight),
+                            leftFormat);
                     }
 
                     currentIndex++;
@@ -944,12 +997,23 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void DrawLabelAndValue(Graphics g, string label, string value,
                                        float x, float y, float labelWidth, float valueWidth,
-                                       StringFormat format)
+                                       float height, StringFormat format)
         {
             g.DrawString(label, new Font("Arial", 8.5f, FontStyle.Bold),
-                         Brushes.Black, new RectangleF(x, y, labelWidth, 10), format);
+                         Brushes.Black, new RectangleF(x, y, labelWidth, height), format);
             g.DrawString(value, new Font("Arial", 8.5f, FontStyle.Bold),
-                         Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, 10), format);
+                         Brushes.Black, new RectangleF(x + labelWidth, y, valueWidth, height), format);
+        }
+
+        private void ApplyBarcodeLabelSettings(PrintDocument document)
+        {
+            const float mmToHundredthsInch = 100f / 25.4f;
+            int widthMm = 90;
+            int heightMm = 60;
+            document.DefaultPageSettings.PaperSize = new PaperSize("BarcodeLabel90x60",
+                (int)Math.Round(widthMm * mmToHundredthsInch),
+                (int)Math.Round(heightMm * mmToHundredthsInch));
+            document.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
         }
 
 
