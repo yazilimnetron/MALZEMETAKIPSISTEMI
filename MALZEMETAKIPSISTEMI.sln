@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.34902.97
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MALZEMETAKIPSISTEMI", "MALZEMETAKIPSISTEMI.csproj", "{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {454016EC-FE7A-40AF-B0CE-6182DF7453FE}
+	EndGlobalSection
+EndGlobal
