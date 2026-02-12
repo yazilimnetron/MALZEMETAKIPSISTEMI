@@ -19,9 +19,6 @@ namespace MALZEME_TAKIP_SISTEMI
 {
     public partial class frmMalzemeDepoStokDurum : Form
     {
-        string whereString = string.Empty;
-        string whereString2 = string.Empty;
-
         void SetGridFont(GridView view, Font font)
         {
             foreach (AppearanceObject ap in view.Appearance)
@@ -91,175 +88,15 @@ namespace MALZEME_TAKIP_SISTEMI
 
         public void InitForm()
         {
-            // 1) Tarihleri ISO formatına çevir (literal olarak gömeceğiz)
-            var baslangic = dateEditBaslangicTarih.DateTime.Date.ToString("yyyy-MM-dd");
-            var bitis = dateEditBitisTarih.DateTime.Date.ToString("yyyy-MM-dd");
+            DateTime baslangic = dateEditBaslangicTarih.DateTime.Date;
+            DateTime bitisExclusive = dateEditBitisTarih.DateTime.Date.AddDays(1);
+            var selectedGroupIds = GetSelectedGroupIds();
+            bool stokAlanindanCalis = checkEditTarih.Checked;
 
-            // 2) Grup filtresi (seçiliyse IN listesi üret)
-            var selectedGroups = checkedComboBoxEditGrup.Properties
-                .GetItems().GetCheckedValues()
-                .Cast<string>()
-                .ToList();
-
-            // Tek tırnak kaçırma ile güvenli IN listesi
-            string SafeQ(string s) => "N'" + (s ?? "").Replace("'", "''") + "'";
-            string inList = selectedGroups.Count > 0
-                ? string.Join(",", selectedGroups.Select(SafeQ))
-                : "";
-
-            // 3) Sorgu inşası (text olarak çalıştıracağız)
-            var sb = new StringBuilder(2048);
-
-            if (!checkEditTarih.Checked)
-            {
-                sb.AppendLine("SELECT MALZEME_ID, [MALZEME OUDBTNO], CASE WHEN [MALZEME TURU]=1 THEN 'NLAG' WHEN [MALZEME TURU]=2 THEN 'UNBW' ELSE '<<Seçiniz>>' END [MALZEME TURU],");
-                sb.AppendLine("       [MALZEME MATERYEL], [MALZEME PARÇANO], [MALZEME ADI],");
-                sb.AppendLine("       CASE WHEN [MALZEME GİRİŞ P.BİRİMİ] = 1 THEN 'TL' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 2 THEN '€' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 3 THEN '$'");
-                sb.AppendLine("            WHEN [MALZEME GİRİŞ P.BİRİMİ] = 4 THEN 'JPY' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 5 THEN 'CHF' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 6 THEN 'GBP' END [MALZEME G.PARA BİRİMİ],");
-                sb.AppendLine("       ISNULL([MALZEME GİRİŞ B.FİYAT],0) [MALZEME GİRİŞ B.FİYAT],");
-                sb.AppendLine("       ISNULL([MALZEME GİRİŞ ADET],0) [MALZEME GİRİŞ ADET], ISNULL([MALZEME GİRİŞ ADET],0)*[MALZEME B.FİYAT] [MALZEME GİRİŞ T.FİYAT],");
-                sb.AppendLine("       ISNULL([MALZEME ÇIKIŞ ADET],0) [MALZEME ÇIKIŞ ADET], ISNULL([MALZEME ÇIKIŞ ADET],0)*[MALZEME B.FİYAT] [MALZEME ÇIKIŞ T.FİYAT],");
-                sb.AppendLine("       (ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) [MALZEME STOK MİKTAR], [MALZEME MİN ADET], [MALZEME MAX ADET],");
-                sb.AppendLine("       CASE WHEN (ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) > [MALZEME MAX ADET]");
-                sb.AppendLine("            THEN (ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) - [MALZEME MAX ADET] ELSE 0 END AS [STOK FAZLASI MİKTAR],");
-                sb.AppendLine("       [MALZEME B.FİYAT] AS [MALZEME BİRİM FİYAT],");
-                sb.AppendLine("       (ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) * [MALZEME B.FİYAT] AS [MALZEME TOPLAM FİYAT],");
-                sb.AppendLine("       CASE WHEN (ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) > [MALZEME MAX ADET]");
-                sb.AppendLine("            THEN ((ISNULL([MALZEME GİRİŞ ADET],0) - ISNULL([MALZEME ÇIKIŞ ADET],0)) - [MALZEME MAX ADET]) * [MALZEME B.FİYAT] ELSE 0 END AS [STOK FAZLASI TOPLAM FİYAT],");
-                sb.AppendLine("       [MALZEME G.TARİH] AS [MALZEME GİRİŞ TARİH], [MALZEME Ç.TARİH] AS [MALZEME ÇIKIŞ TARİH], [MALZEME RAFNO], [MALZEME ANA GRUBU],");
-                sb.AppendLine("       [MALZEME GRUBU], [MALZEME STOK SAY], [MALZEME SATINALMA KATEGORISI], [MALZEME NOTU], [MALZEME G.YILI], [MALZEME Ç.YILI]");
-                sb.AppendLine("FROM (");
-                sb.AppendLine("    SELECT m.MALZEME_ID, m.MALZEME_OUDBTNO AS [MALZEME OUDBTNO], m.MALZEME_TURU AS [MALZEME TURU],");
-                sb.AppendLine("           m.MALZEME_MATERYAL AS [MALZEME MATERYEL], m.MALZEME_PARCANO AS [MALZEME PARÇANO], m.MALZEME_ADI AS [MALZEME ADI],");
-                sb.AppendLine("           (SELECT TOP 1 e.MALZEMEGIRIS_PARABIRIMI");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME GİRİŞ P.BİRİMİ],");
-                sb.AppendLine("           (SELECT TOP 1 ISNULL(e.MALZEMEGIRIS_BIRIMFIYAT,0)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME GİRİŞ B.FİYAT],");
-                sb.AppendLine("           m.MALZEME_MINADET AS [MALZEME MİN ADET],");
-
-                // GİRİŞ ADET (sargable tarih)
-                sb.AppendLine($"           (SELECT SUM(mg.MALZEMEGIRIS_ADET)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS mg");
-                sb.AppendLine("            WHERE m.MALZEME_ID = mg.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine($"              AND mg.MALZEMEGIRIS_TARIH >= '{baslangic}'");
-                sb.AppendLine($"              AND mg.MALZEMEGIRIS_TARIH <  DATEADD(day,1,'{bitis}')) AS [MALZEME GİRİŞ ADET],");
-
-                // ÇIKIŞ ADET (sargable tarih)
-                sb.AppendLine($"           (SELECT SUM(mc.MALZEMECIKIS_ADET)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMECIKIS mc");
-                sb.AppendLine("            WHERE m.MALZEME_ID = mc.MALZEMECIKIS_MALZEMELERID");
-                sb.AppendLine($"              AND mc.MALZEMECIKIS_TARIHI >= '{baslangic}'");
-                sb.AppendLine($"              AND mc.MALZEMECIKIS_TARIHI <  DATEADD(day,1,'{bitis}')) AS [MALZEME ÇIKIŞ ADET],");
-
-                sb.AppendLine("           m.MALZEME_MAXADET AS [MALZEME MAX ADET],");
-                sb.AppendLine("           (SELECT TOP 1 e.MALZEMEGIRIS_SORGUBIRIMFIYAT");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME B.FİYAT],");
-                sb.AppendLine("           (SELECT TOP 1 CONVERT(varchar(10), e.MALZEMEGIRIS_TARIH, 121)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME G.TARİH],");
-                sb.AppendLine("           (SELECT TOP 1 CONVERT(varchar(10), e.MALZEMECIKIS_TARIHI, 121)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMECIKIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMECIKIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMECIKIS_TARIHI DESC) AS [MALZEME Ç.TARİH],");
-                sb.AppendLine("           m.MALZEME_RAFNO AS [MALZEME RAFNO],");
-
-                // ANA GRUP ADI (seçime göre IN)
-                sb.Append("           (SELECT d.MALZEMEANAGRUP_ADI");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEANAGRUPLAR d");
-                sb.AppendLine("            WHERE m.MALZEME_ANAGRUBU = d.MALZEMEANAGRUP_ID");
-                if (!string.IsNullOrEmpty(inList))
-                    sb.AppendLine($"              AND d.MALZEMEANAGRUP_ADI IN ({inList})");
-                sb.AppendLine("           ) AS [MALZEME ANA GRUBU],");
-
-                // >>> MALZEME GRUBU ADI (ID yerine AD)
-                sb.AppendLine("           (SELECT TOP 1 g.MALZEMEGRUP_ADI");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGRUPLAR g");
-                sb.AppendLine("            WHERE g.MALZEMEGRUP_ID = m.MALZEME_GRUBU) AS [MALZEME GRUBU],");
-
-                sb.AppendLine("           m.MALZEME_STOKSAY AS [MALZEME STOK SAY],");
-                sb.AppendLine("           (SELECT k.MALZEMEKATEGORI_ADI + ' (' + k.MALZEMEKATEGORI_KODU + ')'");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEKATEGORILER k WHERE m.MALZEME_SATINALMAKATEGORI = k.MALZEMEKATEGORI_ID)");
-                sb.AppendLine("           AS [MALZEME SATINALMA KATEGORISI],");
-                sb.AppendLine("           m.MALZEME_NOTU AS [MALZEME NOTU],");
-                sb.AppendLine("           (SELECT TOP 1 YEAR(e.MALZEMEGIRIS_TARIH)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMEGIRIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME G.YILI],");
-                sb.AppendLine("           (SELECT TOP 1 YEAR(e.MALZEMECIKIS_TARIHI)");
-                sb.AppendLine("            FROM TBL_LST_MALZEMECIKIS e");
-                sb.AppendLine("            WHERE m.MALZEME_ID = e.MALZEMECIKIS_MALZEMELERID");
-                sb.AppendLine("            ORDER BY e.MALZEMECIKIS_TARIHI DESC) AS [MALZEME Ç.YILI]");
-                sb.AppendLine("    FROM TBL_LST_MALZEMELER m WITH (NOLOCK)");
-                sb.AppendLine(") SORGU");
-                sb.AppendLine("WHERE ISNULL([MALZEME GİRİŞ ADET],0) > 0");
-                if (!string.IsNullOrEmpty(inList))
-                    sb.AppendLine("  AND [MALZEME ANA GRUBU] IS NOT NULL");
-            }
-            else
-            {
-                // "stoktan" varyant — yine grup filtresi ve MALZEME GRUBU adını ekledik.
-                sb.AppendLine("SELECT MALZEME_ID, [MALZEME OUDBTNO], CASE WHEN [MALZEME TURU]=1 THEN 'NLAG' WHEN [MALZEME TURU]=2 THEN 'UNBW' ELSE '<<Seçiniz>>' END [MALZEME TURU],");
-                sb.AppendLine("       [MALZEME MATERYEL], [MALZEME PARÇANO], [MALZEME ADI],");
-                sb.AppendLine("       CASE WHEN [MALZEME GİRİŞ P.BİRİMİ] = 1 THEN 'TL' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 2 THEN '€' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 3 THEN '$'");
-                sb.AppendLine("            WHEN [MALZEME GİRİŞ P.BİRİMİ] = 4 THEN 'JPY' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 5 THEN 'CHF' WHEN [MALZEME GİRİŞ P.BİRİMİ] = 6 THEN 'GBP' END [MALZEME G.PARA BİRİMİ],");
-                sb.AppendLine("       [MALZEME GİRİŞ B.FİYAT], [MALZEME GİRİŞ ADET], [MALZEME GİRİŞ ADET]*[MALZEME B.FİYAT] [MALZEME GİRİŞ T.FİYAT],");
-                sb.AppendLine("       [MALZEME ÇIKIŞ ADET], [MALZEME ÇIKIŞ ADET]*[MALZEME B.FİYAT] [MALZEME ÇIKIŞ T.FİYAT],");
-                sb.AppendLine("       [MALZEME STOK MIKTARI] AS [MALZEME STOK MİKTAR], [MALZEME MİN ADET], [MALZEME MAX ADET],");
-                sb.AppendLine("       CASE WHEN [MALZEME STOK MIKTARI] > [MALZEME MAX ADET] THEN [MALZEME STOK MIKTARI] - [MALZEME MAX ADET] ELSE 0 END AS [STOK FAZLASI MİKTAR],");
-                sb.AppendLine("       [MALZEME B.FİYAT] AS [MALZEME BİRİM FİYAT], [MALZEME STOK MIKTARI]*[MALZEME B.FİYAT] AS [MALZEME TOPLAM FİYAT],");
-                sb.AppendLine("       CASE WHEN [MALZEME STOK MIKTARI] > [MALZEME MAX ADET] THEN ([MALZEME STOK MIKTARI]-[MALZEME MAX ADET])*[MALZEME B.FİYAT] ELSE 0 END AS [STOK FAZLASI TOPLAM FİYAT],");
-                sb.AppendLine("       [MALZEME G.TARİH] AS [MALZEME GİRİŞ TARİH], [MALZEME Ç.TARİH] AS [MALZEME ÇIKIŞ TARİH], [MALZEME RAFNO], [MALZEME ANA GRUBU], [MALZEME GRUBU],");
-                sb.AppendLine("       [MALZEME STOK SAY], [MALZEME SATINALMA KATEGORISI], [MALZEME NOTU], [MALZEME G.YILI], [MALZEME Ç.YILI]");
-                sb.AppendLine("FROM (");
-                sb.AppendLine("    SELECT m.MALZEME_ID, m.MALZEME_OUDBTNO AS [MALZEME OUDBTNO], m.MALZEME_TURU AS [MALZEME TURU], m.MALZEME_STOKMIKTARI AS [MALZEME STOK MIKTARI],");
-                sb.AppendLine("           m.MALZEME_MATERYAL AS [MALZEME MATERYEL], m.MALZEME_PARCANO AS [MALZEME PARÇANO], m.MALZEME_ADI AS [MALZEME ADI],");
-                sb.AppendLine("           (SELECT TOP 1 e.MALZEMEGIRIS_PARABIRIMI FROM TBL_LST_MALZEMEGIRIS e WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME GİRİŞ P.BİRİMİ],");
-                sb.AppendLine("           (SELECT TOP 1 e.MALZEMEGIRIS_BIRIMFIYAT FROM TBL_LST_MALZEMEGIRIS e WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME GİRİŞ B.FİYAT],");
-                sb.AppendLine("           m.MALZEME_MINADET AS [MALZEME MİN ADET],");
-
-                // GİRİŞ / ÇIKIŞ ADET – stok varyantında yine tarih aralığına göre hesap olsun istiyorsan bırak;
-                // değiştirmeyeceksen mevcut mantığına paralel kalsın:
-                sb.AppendLine($"           (SELECT ISNULL(SUM(mg.MALZEMEGIRIS_ADET),0) FROM TBL_LST_MALZEMEGIRIS mg WHERE m.MALZEME_ID = mg.MALZEMEGIRIS_MALZEMELERID AND mg.MALZEMEGIRIS_TARIH >= '{baslangic}' AND mg.MALZEMEGIRIS_TARIH < DATEADD(day,1,'{bitis}')) AS [MALZEME GİRİŞ ADET],");
-                sb.AppendLine($"           (SELECT ISNULL(SUM(mc.MALZEMECIKIS_ADET),0) FROM TBL_LST_MALZEMECIKIS mc WHERE m.MALZEME_ID = mc.MALZEMECIKIS_MALZEMELERID AND mc.MALZEMECIKIS_TARIHI >= '{baslangic}' AND mc.MALZEMECIKIS_TARIHI < DATEADD(day,1,'{bitis}')) AS [MALZEME ÇIKIŞ ADET],");
-
-                sb.AppendLine("           m.MALZEME_MAXADET AS [MALZEME MAX ADET],");
-                sb.AppendLine("           (SELECT TOP 1 e.MALZEMEGIRIS_SORGUBIRIMFIYAT FROM TBL_LST_MALZEMEGIRIS e WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME B.FİYAT],");
-                sb.AppendLine("           (SELECT TOP 1 CONVERT(varchar(10), e.MALZEMEGIRIS_TARIH, 121) FROM TBL_LST_MALZEMEGIRIS e WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME G.TARİH],");
-                sb.AppendLine("           (SELECT TOP 1 CONVERT(varchar(10), e.MALZEMECIKIS_TARIHI, 121) FROM TBL_LST_MALZEMECIKIS e WHERE m.MALZEME_ID = e.MALZEMECIKIS_MALZEMELERID ORDER BY e.MALZEMECIKIS_TARIHI DESC) AS [MALZEME Ç.TARİH],");
-                sb.AppendLine("           m.MALZEME_RAFNO AS [MALZEME RAFNO],");
-
-                sb.Append("           (SELECT d.MALZEMEANAGRUP_ADI FROM TBL_LST_MALZEMEANAGRUPLAR d WHERE m.MALZEME_ANAGRUBU = d.MALZEMEANAGRUP_ID");
-                if (!string.IsNullOrEmpty(inList))
-                    sb.AppendLine($" AND d.MALZEMEANAGRUP_ADI IN ({inList})");
-                sb.AppendLine("           ) AS [MALZEME ANA GRUBU],");
-
-                // >>> MALZEME GRUBU ADI
-                sb.AppendLine("           (SELECT TOP 1 g.MALZEMEGRUP_ADI FROM TBL_LST_MALZEMEGRUPLAR g WHERE g.MALZEMEGRUP_ID = m.MALZEME_GRUBU) AS [MALZEME GRUBU],");
-
-                sb.AppendLine("           m.MALZEME_STOKSAY AS [MALZEME STOK SAY],");
-                sb.AppendLine("           (SELECT k.MALZEMEKATEGORI_ADI + ' (' + k.MALZEMEKATEGORI_KODU + ')' FROM TBL_LST_MALZEMEKATEGORILER k WHERE m.MALZEME_SATINALMAKATEGORI = k.MALZEMEKATEGORI_ID) AS [MALZEME SATINALMA KATEGORISI],");
-                sb.AppendLine("           m.MALZEME_NOTU AS [MALZEME NOTU],");
-                sb.AppendLine("           (SELECT TOP 1 YEAR(e.MALZEMEGIRIS_TARIH) FROM TBL_LST_MALZEMEGIRIS e WHERE m.MALZEME_ID = e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) AS [MALZEME G.YILI],");
-                sb.AppendLine("           (SELECT TOP 1 YEAR(e.MALZEMECIKIS_TARIHI) FROM TBL_LST_MALZEMECIKIS e WHERE m.MALZEME_ID = e.MALZEMECIKIS_MALZEMELERID ORDER BY e.MALZEMECIKIS_TARIHI DESC) AS [MALZEME Ç.YILI]");
-                sb.AppendLine("    FROM TBL_LST_MALZEMELER m WITH (NOLOCK)");
-                sb.AppendLine(") SORGU");
-                sb.AppendLine("WHERE ISNULL([MALZEME GİRİŞ ADET],0) > 0");
-                if (!string.IsNullOrEmpty(inList))
-                    sb.AppendLine("  AND [MALZEME ANA GRUBU] IS NOT NULL");
-            }
-
-            // 4) Çalıştır
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
+            string sql = BuildReportQuery(baslangic, bitisExclusive, selectedGroupIds, stokAlanindanCalis);
+            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sql);
             gridControlDepoDurum.DataSource = dtMalzemeler;
 
-            // 5) Grid format/özetler (seninkiyle aynı)
             this.gridViewDepoDurum.Columns["MALZEME_ID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
 
             this.gridViewDepoDurum.Columns["MALZEME MATERYEL"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
@@ -309,29 +146,98 @@ namespace MALZEME_TAKIP_SISTEMI
             this.gridViewDepoDurum.BestFitColumns();
         }
 
+        private List<int> GetSelectedGroupIds()
+        {
+            return checkedComboBoxEditGrup.Properties
+                .GetItems().GetCheckedValues()
+                .Cast<object>()
+                .Select(v => clGenelTanim.DBToInt32(v))
+                .Where(v => v > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        private string BuildReportQuery(DateTime baslangic, DateTime bitisExclusive, List<int> selectedGroupIds, bool stokAlanindanCalis)
+        {
+            string bas = baslangic.ToString("yyyy-MM-dd");
+            string bitEx = bitisExclusive.ToString("yyyy-MM-dd");
+            string grupFilter = selectedGroupIds.Count > 0 ? $"AND m.MALZEME_ANAGRUBU IN ({string.Join(",", selectedGroupIds)})" : string.Empty;
+            string stokExpr = stokAlanindanCalis
+                ? "ISNULL(b.[MALZEME STOK MIKTARI],0)"
+                : "ISNULL(gp.[MALZEME GİRİŞ ADET],0) - ISNULL(cp.[MALZEME ÇIKIŞ ADET],0)";
+
+            var sb = new StringBuilder(4096);
+            sb.AppendLine("WITH Base AS (");
+            sb.AppendLine("    SELECT m.MALZEME_ID, m.MALZEME_OUDBTNO AS [MALZEME OUDBTNO], m.MALZEME_TURU,");
+            sb.AppendLine("           m.MALZEME_MATERYAL AS [MALZEME MATERYEL], m.MALZEME_PARCANO AS [MALZEME PARÇANO], m.MALZEME_ADI AS [MALZEME ADI],");
+            sb.AppendLine("           m.MALZEME_STOKMIKTARI AS [MALZEME STOK MIKTARI], m.MALZEME_MINADET AS [MALZEME MİN ADET], m.MALZEME_MAXADET AS [MALZEME MAX ADET],");
+            sb.AppendLine("           m.MALZEME_RAFNO AS [MALZEME RAFNO],");
+            sb.AppendLine("           ag.MALZEMEANAGRUP_ADI AS [MALZEME ANA GRUBU],");
+            sb.AppendLine("           gr.MALZEMEGRUP_ADI AS [MALZEME GRUBU],");
+            sb.AppendLine("           m.MALZEME_STOKSAY AS [MALZEME STOK SAY],");
+            sb.AppendLine("           kat.MALZEMEKATEGORI_ADI + ' (' + kat.MALZEMEKATEGORI_KODU + ')' AS [MALZEME SATINALMA KATEGORISI],");
+            sb.AppendLine("           m.MALZEME_NOTU AS [MALZEME NOTU]");
+            sb.AppendLine("    FROM TBL_LST_MALZEMELER m WITH (NOLOCK)");
+            sb.AppendLine("    LEFT JOIN TBL_LST_MALZEMEANAGRUPLAR ag WITH (NOLOCK) ON ag.MALZEMEANAGRUP_ID = m.MALZEME_ANAGRUBU");
+            sb.AppendLine("    LEFT JOIN TBL_LST_MALZEMEGRUPLAR gr WITH (NOLOCK) ON gr.MALZEMEGRUP_ID = m.MALZEME_GRUBU");
+            sb.AppendLine("    LEFT JOIN TBL_LST_MALZEMEKATEGORILER kat WITH (NOLOCK) ON kat.MALZEMEKATEGORI_ID = m.MALZEME_SATINALMAKATEGORI");
+            sb.AppendLine("    WHERE 1=1");
+            if (!string.IsNullOrEmpty(grupFilter))
+                sb.AppendLine($"      {grupFilter}");
+            sb.AppendLine("), GirisPeriod AS (");
+            sb.AppendLine("    SELECT mg.MALZEMEGIRIS_MALZEMELERID AS MALZEME_ID, ISNULL(SUM(mg.MALZEMEGIRIS_ADET),0) AS [MALZEME GİRİŞ ADET]");
+            sb.AppendLine("    FROM TBL_LST_MALZEMEGIRIS mg WITH (NOLOCK)");
+            sb.AppendLine($"    WHERE mg.MALZEMEGIRIS_TARIH >= '{bas}' AND mg.MALZEMEGIRIS_TARIH < '{bitEx}'");
+            sb.AppendLine("    GROUP BY mg.MALZEMEGIRIS_MALZEMELERID");
+            sb.AppendLine("), CikisPeriod AS (");
+            sb.AppendLine("    SELECT mc.MALZEMECIKIS_MALZEMELERID AS MALZEME_ID, ISNULL(SUM(mc.MALZEMECIKIS_ADET),0) AS [MALZEME ÇIKIŞ ADET]");
+            sb.AppendLine("    FROM TBL_LST_MALZEMECIKIS mc WITH (NOLOCK)");
+            sb.AppendLine($"    WHERE mc.MALZEMECIKIS_TARIHI >= '{bas}' AND mc.MALZEMECIKIS_TARIHI < '{bitEx}'");
+            sb.AppendLine("    GROUP BY mc.MALZEMECIKIS_MALZEMELERID");
+            sb.AppendLine("), LastGiris AS (");
+            sb.AppendLine("    SELECT e.MALZEMEGIRIS_MALZEMELERID AS MALZEME_ID, e.MALZEMEGIRIS_PARABIRIMI AS [MALZEME GİRİŞ P.BİRİMİ],");
+            sb.AppendLine("           ISNULL(e.MALZEMEGIRIS_BIRIMFIYAT,0) AS [MALZEME GİRİŞ B.FİYAT], ISNULL(e.MALZEMEGIRIS_SORGUBIRIMFIYAT,0) AS [MALZEME B.FİYAT],");
+            sb.AppendLine("           CONVERT(varchar(10), e.MALZEMEGIRIS_TARIH, 121) AS [MALZEME G.TARİH], YEAR(e.MALZEMEGIRIS_TARIH) AS [MALZEME G.YILI],");
+            sb.AppendLine("           ROW_NUMBER() OVER(PARTITION BY e.MALZEMEGIRIS_MALZEMELERID ORDER BY e.MALZEMEGIRIS_TARIH DESC) rn");
+            sb.AppendLine("    FROM TBL_LST_MALZEMEGIRIS e WITH (NOLOCK)");
+            sb.AppendLine("), LastCikis AS (");
+            sb.AppendLine("    SELECT e.MALZEMECIKIS_MALZEMELERID AS MALZEME_ID, CONVERT(varchar(10), e.MALZEMECIKIS_TARIHI, 121) AS [MALZEME Ç.TARİH],");
+            sb.AppendLine("           YEAR(e.MALZEMECIKIS_TARIHI) AS [MALZEME Ç.YILI],");
+            sb.AppendLine("           ROW_NUMBER() OVER(PARTITION BY e.MALZEMECIKIS_MALZEMELERID ORDER BY e.MALZEMECIKIS_TARIHI DESC) rn");
+            sb.AppendLine("    FROM TBL_LST_MALZEMECIKIS e WITH (NOLOCK)");
+            sb.AppendLine(")");
+            sb.AppendLine("SELECT b.MALZEME_ID, b.[MALZEME OUDBTNO],");
+            sb.AppendLine("       CASE WHEN b.MALZEME_TURU=1 THEN 'NLAG' WHEN b.MALZEME_TURU=2 THEN 'UNBW' ELSE '<<Seçiniz>>' END [MALZEME TURU],");
+            sb.AppendLine("       b.[MALZEME MATERYEL], b.[MALZEME PARÇANO], b.[MALZEME ADI],");
+            sb.AppendLine("       CASE WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=1 THEN 'TL' WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=2 THEN '€' WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=3 THEN '$'");
+            sb.AppendLine("            WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=4 THEN 'JPY' WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=5 THEN 'CHF' WHEN lg.[MALZEME GİRİŞ P.BİRİMİ]=6 THEN 'GBP' END [MALZEME G.PARA BİRİMİ],");
+            sb.AppendLine("       ISNULL(lg.[MALZEME GİRİŞ B.FİYAT],0) AS [MALZEME GİRİŞ B.FİYAT],");
+            sb.AppendLine("       ISNULL(gp.[MALZEME GİRİŞ ADET],0) AS [MALZEME GİRİŞ ADET],");
+            sb.AppendLine("       ISNULL(gp.[MALZEME GİRİŞ ADET],0) * ISNULL(lg.[MALZEME B.FİYAT],0) AS [MALZEME GİRİŞ T.FİYAT],");
+            sb.AppendLine("       ISNULL(cp.[MALZEME ÇIKIŞ ADET],0) AS [MALZEME ÇIKIŞ ADET],");
+            sb.AppendLine("       ISNULL(cp.[MALZEME ÇIKIŞ ADET],0) * ISNULL(lg.[MALZEME B.FİYAT],0) AS [MALZEME ÇIKIŞ T.FİYAT],");
+            sb.AppendLine($"       {stokExpr} AS [MALZEME STOK MİKTAR],");
+            sb.AppendLine("       b.[MALZEME MİN ADET], b.[MALZEME MAX ADET],");
+            sb.AppendLine($"       CASE WHEN {stokExpr} > b.[MALZEME MAX ADET] THEN {stokExpr} - b.[MALZEME MAX ADET] ELSE 0 END AS [STOK FAZLASI MİKTAR],");
+            sb.AppendLine("       ISNULL(lg.[MALZEME B.FİYAT],0) AS [MALZEME BİRİM FİYAT],");
+            sb.AppendLine($"       {stokExpr} * ISNULL(lg.[MALZEME B.FİYAT],0) AS [MALZEME TOPLAM FİYAT],");
+            sb.AppendLine($"       CASE WHEN {stokExpr} > b.[MALZEME MAX ADET] THEN ({stokExpr} - b.[MALZEME MAX ADET]) * ISNULL(lg.[MALZEME B.FİYAT],0) ELSE 0 END AS [STOK FAZLASI TOPLAM FİYAT],");
+            sb.AppendLine("       lg.[MALZEME G.TARİH] AS [MALZEME GİRİŞ TARİH], lc.[MALZEME Ç.TARİH] AS [MALZEME ÇIKIŞ TARİH],");
+            sb.AppendLine("       b.[MALZEME RAFNO], b.[MALZEME ANA GRUBU], b.[MALZEME GRUBU], b.[MALZEME STOK SAY], b.[MALZEME SATINALMA KATEGORISI], b.[MALZEME NOTU],");
+            sb.AppendLine("       lg.[MALZEME G.YILI], lc.[MALZEME Ç.YILI]");
+            sb.AppendLine("FROM Base b");
+            sb.AppendLine("LEFT JOIN GirisPeriod gp ON gp.MALZEME_ID = b.MALZEME_ID");
+            sb.AppendLine("LEFT JOIN CikisPeriod cp ON cp.MALZEME_ID = b.MALZEME_ID");
+            sb.AppendLine("LEFT JOIN LastGiris lg ON lg.MALZEME_ID = b.MALZEME_ID AND lg.rn = 1");
+            sb.AppendLine("LEFT JOIN LastCikis lc ON lc.MALZEME_ID = b.MALZEME_ID AND lc.rn = 1");
+            sb.AppendLine("WHERE ISNULL(gp.[MALZEME GİRİŞ ADET],0) > 0");
+            sb.AppendLine("ORDER BY b.MALZEME_ID DESC");
+
+            return sb.ToString();
+        }
+
         private void barButtonItemListele_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            whereString = string.Empty;
-            whereString2 = string.Empty;
-
-            foreach (CheckedListBoxItem items in checkedComboBoxEditGrup.Properties.Items)
-            {
-                if (items.CheckState == CheckState.Checked)
-                {
-                    whereString += "'" + String.Format(items.Description.ToString()) + "'" + ",";
-                }
-            }
-
-            if (whereString != string.Empty)
-            {
-                whereString = whereString.Substring(0, whereString.Length - 1);
-            }
-
-            if (whereString2 != string.Empty)
-            {
-                whereString2 = whereString2.Substring(0, whereString2.Length - 1);
-            }
-
             InitForm();
         }
 
@@ -363,21 +269,17 @@ namespace MALZEME_TAKIP_SISTEMI
                     using (SqlCommand sCommand = new SqlCommand(strQuery, conn))
                     {
                         conn.Open();
-                        using (SqlDataAdapter sAdapter = new SqlDataAdapter(sCommand))
+                        using (SqlDataReader dr = sCommand.ExecuteReader(CommandBehavior.CloseConnection))
                         {
-                            SqlDataReader dr = sCommand.ExecuteReader(CommandBehavior.CloseConnection);
-
                             while (dr.Read())
                             {
                                 MyModel departmanlar = new MyModel();
                                 departmanlar.MALZEMEGRUP_ID = Convert.ToInt32(dr[0]);
                                 departmanlar.MALZEMEGRUP_ADI = dr[1].ToString();
-                                //değiştirdiğim yer aşağıda
                                 list.Add(departmanlar);
-                                //değiştirdiğim yer yukarıda
                             }
-                            conn.Close();
                         }
+                        conn.Close();
                     }
                 }
 
@@ -399,21 +301,17 @@ namespace MALZEME_TAKIP_SISTEMI
                     using (SqlCommand sCommand = new SqlCommand(strQuery, conn))
                     {
                         conn.Open();
-                        using (SqlDataAdapter sAdapter = new SqlDataAdapter(sCommand))
+                        using (SqlDataReader dr = sCommand.ExecuteReader(CommandBehavior.CloseConnection))
                         {
-                            SqlDataReader dr = sCommand.ExecuteReader(CommandBehavior.CloseConnection);
-
                             while (dr.Read())
                             {
                                 MyModel2 departmanlar2 = new MyModel2();
                                 departmanlar2.MALZEME_DEPARTMANID = Convert.ToInt32(dr[0]);
                                 departmanlar2.MALZEME_DEPARTMANADI = dr[1].ToString();
-                                //değiştirdiğim yer aşağıda
                                 list.Add(departmanlar2);
-                                //değiştirdiğim yer yukarıda
                             }
-                            conn.Close();
                         }
+                        conn.Close();
                     }
                 }
 

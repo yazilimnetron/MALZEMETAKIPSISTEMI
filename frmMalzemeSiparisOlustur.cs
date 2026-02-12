@@ -184,37 +184,54 @@ namespace MALZEME_TAKIP_SISTEMI
                 return;
             }
 
-
-            DataRow[] rows = dt.Select("", "", DataViewRowState.Deleted | DataViewRowState.Added | DataViewRowState.ModifiedCurrent);
-
             if (DialogResult.Yes == XtraMessageBox.Show("Siparişinizi onaylıyor musunuz?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                foreach (DataRow dr in dt.Rows)
+                try
                 {
-                    if (dr.RowState == DataRowState.Unchanged) continue;
-                    try
-                    {
-                        StringBuilder sbI = new StringBuilder(512);
-                        //StringBuilder sbII = new StringBuilder(512);
+                    int malzemeDepoIstemId = clGenelTanim.DBToInt32(textEditMalzemeIstemKayitNo.Text);
+                    StringBuilder sbTx = new StringBuilder(8192);
+                    bool hasAddedRow = false;
 
+                    sbTx.AppendLine("BEGIN TRY");
+                    sbTx.AppendLine("BEGIN TRAN");
+
+                    foreach (DataRow dr in dt.Rows)
+                    {
                         if ((dr.RowState & DataRowState.Added) == DataRowState.Added)
                         {
-                            sbI.Append("insert into TBL_LST_MALZEMEISTEM ( MALZEMEISTEM_MALZEMELERID, MALZEMEISTEM_ADI, MALZEMEISTEM_ADET, MALZEMEISTEM_ISTEMTARIHI, MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEMEISTEM_MATERYALNO, MALZEMEISTEM_MALZEMEDEPARTMANISTEMID ) select");
-                            sbI.AppendFormat("  {0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMELERID"]));
-                            sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(dr["MALZEME ADI"], 500, true));
-                            sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["TALEP ADET"]));
-                            sbI.AppendFormat(" ,{0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditMalzemeIstemTarih.DateTime).ToString("yyyy-MM-dd HH:mm") + "'");
-                            sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMEDEPOISTEMID"]));
-                            sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(dr["MATERYAL NO"], 50, true));
-                            sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMEDEPARTMANISTEMID"]));
-
+                            hasAddedRow = true;
+                            sbTx.Append("insert into TBL_LST_MALZEMEISTEM ( MALZEMEISTEM_MALZEMELERID, MALZEMEISTEM_ADI, MALZEMEISTEM_ADET, MALZEMEISTEM_ISTEMTARIHI, MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEMEISTEM_MATERYALNO, MALZEMEISTEM_MALZEMEDEPARTMANISTEMID ) select");
+                            sbTx.AppendFormat("  {0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMELERID"]));
+                            sbTx.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(dr["MALZEME ADI"], 500, true));
+                            sbTx.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["TALEP ADET"]));
+                            sbTx.AppendFormat(" ,{0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditMalzemeIstemTarih.DateTime).ToString("yyyy-MM-dd HH:mm") + "'");
+                            sbTx.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMEDEPOISTEMID"]));
+                            sbTx.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(dr["MATERYAL NO"], 50, true));
+                            sbTx.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(dr["MALZEMEISTEM_MALZEMEDEPARTMANISTEMID"]));
+                            sbTx.AppendLine(";");
                         }
-
-                        clSqlTanim.RunStoredProc(sbI.ToString());
-
-                        //clSqlTanim.RunStoredProc(sbII.ToString());
                     }
-                    catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
+
+                    if (!hasAddedRow)
+                    {
+                        XtraMessageBox.Show("Gönderilecek yeni sipariş satırı bulunamadı !", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    sbTx.AppendLine(BuildInsertMalzemeCikisKayitlariQuery(malzemeDepoIstemId) + ";");
+                    sbTx.AppendLine("COMMIT TRAN");
+                    sbTx.AppendLine("END TRY");
+                    sbTx.AppendLine("BEGIN CATCH");
+                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
+                    sbTx.AppendLine("THROW");
+                    sbTx.AppendLine("END CATCH");
+
+                    clSqlTanim.RunStoredProc(sbTx.ToString());
+                }
+                catch (Exception ex)
+                {
+                    XtraMessageBox.Show(ex.Message);
+                    return;
                 }
 
                 layoutControlMalzemeIstem.LayoutKontrolleriniSifirla();
@@ -347,6 +364,30 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void timerListele_Tick(object sender, EventArgs e)
         {
+        }
+
+        private string BuildInsertMalzemeCikisKayitlariQuery(int malzemeDepoIstemId)
+        {
+            if (malzemeDepoIstemId <= 0)
+                return string.Empty;
+
+            StringBuilder sbI = new StringBuilder(2048);
+            sbI.Append("INSERT INTO TBL_LST_MALZEMECIKIS (MALZEMECIKIS_MALZEMELERID, MALZEMECIKIS_ADI, MALZEMECIKIS_ADET, MALZEMECIKIS_DEPARTMANID, MALZEMECIKIS_MALZEMEDEPOISTEM_ID, MALZEMECIKIS_TARIHI, MALZEMECIKIS_SORGUBIRIMFIYAT, MALZEMECIKIS_SORGUTOPLAMFIYAT, MALZEMECIKIS_PARABIRIMI) ");
+            sbI.Append("SELECT i.MALZEMEISTEM_MALZEMELERID, i.MALZEMEISTEM_ADI, i.MALZEMEISTEM_ADET, i.MALZEMEISTEM_MALZEMEDEPARTMANISTEMID, i.MALZEMEISTEM_MALZEMEDEPOISTEMID, ");
+            sbI.AppendFormat("'{0}', ", Convert.ToDateTime(DateTime.Now.ToString()).ToString("yyyy-MM-dd HH:mm"));
+            sbI.Append("ISNULL(g.MALZEMEGIRIS_SORGUBIRIMFIYAT,0), ISNULL(g.MALZEMEGIRIS_SORGUBIRIMFIYAT,0) * ISNULL(i.MALZEMEISTEM_ADET,0), ISNULL(g.MALZEMEGIRIS_PARABIRIMI,2) ");
+            sbI.Append("FROM TBL_LST_MALZEMEISTEM i (NOLOCK) ");
+            sbI.Append("OUTER APPLY (SELECT TOP 1 e.MALZEMEGIRIS_SORGUBIRIMFIYAT, e.MALZEMEGIRIS_PARABIRIMI ");
+            sbI.Append("             FROM TBL_LST_MALZEMEGIRIS e (NOLOCK) ");
+            sbI.Append("             WHERE e.MALZEMEGIRIS_MALZEMELERID = i.MALZEMEISTEM_MALZEMELERID ");
+            sbI.Append("             ORDER BY e.MALZEMEGIRIS_TARIH DESC) g ");
+            sbI.AppendFormat("WHERE i.MALZEMEISTEM_MALZEMEDEPOISTEMID = {0} ", malzemeDepoIstemId);
+            sbI.Append("AND NOT EXISTS (");
+            sbI.Append("SELECT 1 FROM TBL_LST_MALZEMECIKIS c (NOLOCK) ");
+            sbI.Append("WHERE c.MALZEMECIKIS_MALZEMEDEPOISTEM_ID = i.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
+            sbI.Append("AND c.MALZEMECIKIS_MALZEMELERID = i.MALZEMEISTEM_MALZEMELERID)");
+
+            return sbI.ToString();
         }
 
         private void gridViewMalzemeIstemListesi_RowStyle(object sender, RowStyleEventArgs e)

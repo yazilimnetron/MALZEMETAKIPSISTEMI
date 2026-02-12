@@ -340,12 +340,12 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             if (e.Column.GetTextCaption() == "SEC")
             {
-                MALZEMEDEPOISTEM_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetRowCellValue(e.RowHandle, gridViewMalzemeTalepleri.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"]).ToString());
+                MALZEMEISTEM_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetRowCellValue(e.RowHandle, gridViewMalzemeTalepleri.Columns["MALZEMEISTEM_ID"]).ToString());
 
                 StringBuilder sbU = new StringBuilder();
                 sbU.Append("Update TBL_LST_MALZEMEISTEM set ");
                 sbU.AppendFormat(" MALZEMEISTEM_DURUM={0}", e.Value.ToString());
-                sbU.AppendFormat(" where MALZEMEISTEM_ID={0}", MALZEMEDEPOISTEM_ID.ToString());
+                sbU.AppendFormat(" where MALZEMEISTEM_ID={0}", MALZEMEISTEM_ID.ToString());
                 clSqlTanim.RunStoredProc(sbU.ToString());
             }
 
@@ -364,10 +364,7 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void simpleButtonMalzemeTalepOnayla_Click(object sender, EventArgs e)
         {
-            int deger = 0, secimId = 0;
-            StringBuilder sbI = new StringBuilder(1024);
-            StringBuilder sbU = new StringBuilder(1024);
-            string strSQL = String.Empty;
+            int deger = 0;
 
             if (gridViewMalzemeTalepleri.DataRowCount <= 0)
             {
@@ -382,44 +379,44 @@ namespace MALZEME_TAKIP_SISTEMI
             {
                 try
                 {
+                    StringBuilder sbTx = new StringBuilder(4096);
+                    StringBuilder sbU = new StringBuilder(2048);
+                    bool hasTeslimSatiri = false;
 
                     for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
                     {
                         deger = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["SEC"].ToString());
-                        MALZEME_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString());
+                        if (deger != 1) continue;
 
-                        sbI.Append("INSERT INTO TBL_LST_MALZEMECIKIS (MALZEMECIKIS_MALZEMELERID, MALZEMECIKIS_ADI, MALZEMECIKIS_ADET, MALZEMECIKIS_DEPARTMANID, MALZEMECIKIS_MALZEMEDEPOISTEM_ID, MALZEMECIKIS_TARIHI, MALZEMECIKIS_SORGUBIRIMFIYAT, MALZEMECIKIS_SORGUTOPLAMFIYAT, MALZEMECIKIS_PARABIRIMI ) SELECT");
-                        sbI.AppendFormat("  {0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME ADI"].ToString(), 500, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME TALEP ADET"].ToString()));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPARTMANISTEMID"].ToString()));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString()));
-                        sbI.AppendFormat(" ,{0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(DateTime.Now.ToString()).ToString("yyyy-MM-dd HH:mm") + "'");
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME BİRİM FİYAT"].ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME SİPARİŞ FİYAT"].ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", 2);
-                        sbI.Append(Environment.NewLine);
+                        hasTeslimSatiri = true;
 
-                        //clSqlTanim.RunStoredProcDR(sbI.ToString());
-
-                        //if (clGenelTanim.dr.Read() != null)
-                        //{
                         sbU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 3 ");
-                        sbU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString());
-                        sbU.Append(Environment.NewLine);
-                        //clSqlTanim.RunStoredProc(sbU.ToString());
-                        //}
+                        sbU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString());
+                        sbU.AppendLine();
                     }
 
-                    clSqlTanim.RunStoredProc(sbI.ToString());
+                    if (!hasTeslimSatiri)
+                    {
+                        XtraMessageBox.Show("Teslim için en az bir satır seçmelisiniz (SEC=1).", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
 
-                    //if (clGenelTanim.dr.Read() == true)
-                    clSqlTanim.RunStoredProc(sbU.ToString());
+                    sbTx.AppendLine("BEGIN TRY");
+                    sbTx.AppendLine("BEGIN TRAN");
+                    sbTx.AppendLine(sbU.ToString());
 
                     StringBuilder sbUUU = new StringBuilder(1024);
                     sbUUU.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM = {0}, MALZEMEDEPOISTEM_TESLIMKULLANICIID={1}, MALZEMEDEPOISTEM_TESLIMTARIHI='{2}'", 3, this.malzemesiparisKullanici, Convert.ToDateTime(DateTime.Now).ToString("yyyy-MM-dd HH:mm"));
-                    sbUUU.AppendFormat(" WHERE MALZEMEDEPOISTEM_ID={0}", MALZEMEDEPOISTEM_ID.ToString());
-                    clSqlTanim.RunStoredProc(sbUUU.ToString());
+                    sbUUU.AppendFormat(" WHERE MALZEMEDEPOISTEM_ID={0};", MALZEMEDEPOISTEM_ID.ToString());
+                    sbTx.AppendLine(sbUUU.ToString());
+                    sbTx.AppendLine("COMMIT TRAN");
+                    sbTx.AppendLine("END TRY");
+                    sbTx.AppendLine("BEGIN CATCH");
+                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
+                    sbTx.AppendLine("THROW");
+                    sbTx.AppendLine("END CATCH");
+
+                    clSqlTanim.RunStoredProc(sbTx.ToString());
 
                     XtraMessageBox.Show("Sipariş Onaylandı ...");
 
@@ -489,26 +486,27 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void simpleButtonMalzemeTalepReddet_Click(object sender, EventArgs e)
         {
-            StringBuilder sbU = new StringBuilder(512);
-
             var item = gridViewMalzemeTalepDepartman.GetFocusedDataRow();
 
             try
             {
                 if (item != null)
                 {
-                    sbU.Append("Update TBL_LST_MALZEMEDEPOISTEM set ");
-                    sbU.AppendFormat(" MALZEMEDEPOISTEM_DURUM={0}", 2);
-                    sbU.AppendFormat(" where MALZEMEDEPOISTEM_ID={0}", clGenelTanim.DBToInt32(item["MALZEMEISTEM_MALZEMEDEPOISTEMID"]));
-                    clSqlTanim.RunStoredProc(sbU.ToString());
-
-                    for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
-                    {
-                        StringBuilder sbUU = new StringBuilder(512);
-                        sbUU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 2 ");
-                        sbUU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()));
-                        clSqlTanim.RunStoredProc(sbUU.ToString());
-                    }
+                    int depoIstemId = clGenelTanim.DBToInt32(item["MALZEMEISTEM_MALZEMEDEPOISTEMID"]);
+                    StringBuilder sbTx = new StringBuilder(1024);
+                    sbTx.AppendLine("BEGIN TRY");
+                    sbTx.AppendLine("BEGIN TRAN");
+                    sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM={0} WHERE MALZEMEDEPOISTEM_ID={1};", 2, depoIstemId);
+                    sbTx.AppendLine();
+                    sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM={0} WHERE MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", 2, depoIstemId);
+                    sbTx.AppendLine();
+                    sbTx.AppendLine("COMMIT TRAN");
+                    sbTx.AppendLine("END TRY");
+                    sbTx.AppendLine("BEGIN CATCH");
+                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
+                    sbTx.AppendLine("THROW");
+                    sbTx.AppendLine("END CATCH");
+                    clSqlTanim.RunStoredProc(sbTx.ToString());
 
                     XtraMessageBox.Show("Sipariş Reddetildi...");
                 }

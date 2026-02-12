@@ -728,6 +728,11 @@ namespace MALZEME_TAKIP_SISTEMI
 
                     StringFormat centerFormat = new StringFormat { Alignment = StringAlignment.Center };
                     StringFormat leftFormat = new StringFormat { Alignment = StringAlignment.Near };
+                    StringFormat rightColumnFormat = new StringFormat
+                    {
+                        Alignment = StringAlignment.Near,
+                        LineAlignment = StringAlignment.Center
+                    };
 
                     string materyel = clGenelTanim.DBToString(row["MALZEME MATERYEL NO"]) ?? "";
                     string materyelRaw = materyel;
@@ -751,9 +756,12 @@ namespace MALZEME_TAKIP_SISTEMI
                     float contentHeight = Math.Max(1f, pageHeight - (marginY * 2));
 
                     float rightColumnWidth = 16f;
-                    float columnGap = 2f;
-                    float barcodeHeight = contentHeight * 0.45f;
+                    float columnGap = 3f;
+                    float materyalTextHeight = 4f;
+                    float textToBarcodeGap = 2f;
+                    float barcodeHeight = (contentHeight * 0.45f) - (materyalTextHeight + textToBarcodeGap);
                     float barcodeWidth = Math.Max(1f, contentWidth - rightColumnWidth - columnGap);
+                    float barcodeY = marginY + materyalTextHeight + textToBarcodeGap;
 
                     var barcodeWriter = new BarcodeWriter
                     {
@@ -770,7 +778,7 @@ namespace MALZEME_TAKIP_SISTEMI
                     if (!string.IsNullOrWhiteSpace(materyelRaw))
                     {
                         var barcodeImage = barcodeWriter.Write(materyelRaw);
-                        ev.Graphics.DrawImage(barcodeImage, marginX, marginY, barcodeWidth, barcodeHeight);
+                        ev.Graphics.DrawImage(barcodeImage, marginX, barcodeY, barcodeWidth, barcodeHeight);
                     }
 
                     var rafNo = clGenelTanim.DBToString(row["MALZEME RAF NO"]) ?? "";
@@ -781,27 +789,37 @@ namespace MALZEME_TAKIP_SISTEMI
                     string strCo = rafBilgileri.Length > 2 ? rafBilgileri[2] : "";
 
                     float rightX = marginX + barcodeWidth + columnGap;
-                    float rightY = marginY + 2f;
-                    float rightRowHeight = 6f;
-                    ev.Graphics.DrawString("Ra:", new Font("Arial", 7.5f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
-                    ev.Graphics.DrawString(strRa, new Font("Arial", 8f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
-                    rightY += rightRowHeight;
-                    ev.Graphics.DrawString("Ro:", new Font("Arial", 7.5f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
-                    ev.Graphics.DrawString(strRow, new Font("Arial", 8f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
-                    rightY += rightRowHeight;
-                    ev.Graphics.DrawString("Co:", new Font("Arial", 7.5f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), leftFormat);
-                    ev.Graphics.DrawString(strCo, new Font("Arial", 8f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), leftFormat);
+                    float rightRowHeight = Math.Max(4.5f, Math.Min(6.5f, barcodeHeight / 4f));
+                    float rightRowGap = 1f;
+                    float rightBlockHeight = (rightRowHeight * 3f) + (rightRowGap * 2f);
+                    float rightY = barcodeY + Math.Max(0f, (barcodeHeight - rightBlockHeight) / 2f);
+                    ev.Graphics.DrawString("Ra:", new Font("Arial", 9.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), rightColumnFormat);
+                    ev.Graphics.DrawString(strRa, new Font("Arial", 10f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), rightColumnFormat);
+                    rightY += rightRowHeight + rightRowGap;
+                    ev.Graphics.DrawString("Ro:", new Font("Arial", 9.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), rightColumnFormat);
+                    ev.Graphics.DrawString(strRow, new Font("Arial", 10f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), rightColumnFormat);
+                    rightY += rightRowHeight + rightRowGap;
+                    ev.Graphics.DrawString("Co:", new Font("Arial", 9.5f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX, rightY, rightColumnWidth, rightRowHeight), rightColumnFormat);
+                    ev.Graphics.DrawString(strCo, new Font("Arial", 10f, FontStyle.Bold),
+                        Brushes.Black, new RectangleF(rightX + 6f, rightY, rightColumnWidth - 6f, rightRowHeight), rightColumnFormat);
 
-                    float currentY = marginY + barcodeHeight + 1f;
+                    using (var materyalFont = new Font("Arial", 15f, FontStyle.Bold))
+                    {
+                        DrawCenteredSpacedText(
+                            ev.Graphics,
+                            materyelRaw,
+                            materyalFont,
+                            Brushes.Black,
+                            new RectangleF(marginX, marginY, barcodeWidth, materyalTextHeight),
+                            1.6f);
+                    }
 
-                    ev.Graphics.DrawString(materyelRaw, new Font("Arial", 8.5f, FontStyle.Bold),
-                        Brushes.Black, new RectangleF(marginX, currentY, contentWidth, 4f), centerFormat);
+                    float currentY = barcodeY + barcodeHeight + 1f;
 
                     currentY += 4.5f;
                     ev.Graphics.DrawLine(Pens.Gray, marginX, currentY, marginX + contentWidth, currentY);
@@ -818,24 +836,26 @@ namespace MALZEME_TAKIP_SISTEMI
                     currentY += 4.5f;
 
                     float labelRowHeight = 4f;
-                    float labelWidth = contentWidth * 0.2f;
                     float valueWidth = contentWidth * 0.25f;
+                    float minLabelWidth = contentWidth * 0.14f;
+                    float maxLabelWidth = contentWidth * 0.14f;
+                    float fiyatLabelWidth = contentWidth * 0.14f;
+                    float fiyatValueWidth = contentWidth * 0.30f;
 
                     DrawLabelAndValue(ev.Graphics, "Min:", clGenelTanim.DBToString(row["MALZEME MİN ADET"]),
-                        marginX, currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
+                        marginX, currentY, minLabelWidth, valueWidth, labelRowHeight, leftFormat);
                     DrawLabelAndValue(ev.Graphics, "Max:", clGenelTanim.DBToString(row["MALZEME MAX ADET"]),
-                        marginX + (contentWidth * 0.36f), currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
-                    DrawLabelAndValue(ev.Graphics, "Fiyat:", clGenelTanim.DBToString(row["MALZEME GİRİŞ B.FİYAT"]),
-                        marginX + (contentWidth * 0.7f), currentY, labelWidth, valueWidth, labelRowHeight, leftFormat);
-
-                    string fiyatCinsi = clGenelTanim.DBToString(row["MALZEME GİRİŞ P.BİRİMİ"]);
-                    if (!string.IsNullOrEmpty(fiyatCinsi))
-                    {
-                        ev.Graphics.DrawString(fiyatCinsi, new Font("Arial", 7.5f, FontStyle.Bold),
-                            Brushes.Black,
-                            new RectangleF(marginX + (contentWidth * 0.9f), currentY, contentWidth * 0.1f, labelRowHeight),
-                            leftFormat);
-                    }
+                        marginX + (contentWidth * 0.30f), currentY, maxLabelWidth, valueWidth, labelRowHeight, leftFormat);
+                    DrawPriceWithCurrency(ev.Graphics,
+                        "Fiyat:",
+                        clGenelTanim.DBToString(row["MALZEME GİRİŞ P.BİRİMİ"]),
+                        clGenelTanim.DBToString(row["MALZEME GİRİŞ B.FİYAT"]),
+                        marginX + (contentWidth * 0.62f),
+                        currentY,
+                        fiyatLabelWidth,
+                        fiyatValueWidth,
+                        labelRowHeight,
+                        leftFormat);
 
                     currentIndex++;
                     ev.HasMorePages = currentIndex < selectedRows.Length;
@@ -867,6 +887,63 @@ namespace MALZEME_TAKIP_SISTEMI
 
                 g.DrawString(value ?? "", font, Brushes.Black,
                     new RectangleF(x + labelWidth, y, valueWidth, height), format);
+            }
+        }
+
+        private void DrawCenteredSpacedText(Graphics g, string text, Font font, Brush brush, RectangleF area, float charSpacing)
+        {
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            float textWidth = 0f;
+            for (int i = 0; i < text.Length; i++)
+            {
+                textWidth += g.MeasureString(text[i].ToString(), font).Width;
+                if (i < text.Length - 1)
+                    textWidth += charSpacing;
+            }
+
+            float x = area.X + Math.Max(0f, (area.Width - textWidth) / 2f);
+            float y = area.Y;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                string ch = text[i].ToString();
+                float w = g.MeasureString(ch, font).Width;
+                g.DrawString(ch, font, brush, new PointF(x, y));
+                x += w + charSpacing;
+            }
+        }
+
+        private void DrawPriceWithCurrency(Graphics g, string label, string currency, string price,
+                                           float x, float y, float labelWidth, float valueWidth,
+                                           float height, StringFormat format)
+        {
+            using (var font = new Font("Arial", 8.5f, FontStyle.Bold))
+            {
+                g.DrawString(label, font, Brushes.Black,
+                    new RectangleF(x, y, labelWidth, height), format);
+
+                string currencyText = currency ?? "";
+                string priceText = price ?? "";
+                float valueX = x + labelWidth;
+
+                float currencyWidth = string.IsNullOrEmpty(currencyText) ? 0f : g.MeasureString(currencyText, font).Width;
+                float priceWidth = string.IsNullOrEmpty(priceText) ? 0f : g.MeasureString(priceText, font).Width;
+
+                float dynamicGap = 1f;
+
+                float drawX = valueX;
+                if (!string.IsNullOrEmpty(currencyText))
+                {
+                    g.DrawString(currencyText, font, Brushes.Black, new PointF(drawX, y));
+                    drawX += currencyWidth + (string.IsNullOrEmpty(priceText) ? 0f : dynamicGap);
+                }
+
+                if (!string.IsNullOrEmpty(priceText))
+                {
+                    g.DrawString(priceText, font, Brushes.Black, new PointF(drawX, y));
+                }
             }
         }
 

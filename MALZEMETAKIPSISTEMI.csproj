@@ -4,6 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <GenerateResourceMSBuildArchitecture Condition="'$(GenerateResourceMSBuildArchitecture)' == '' and '$(MSBuildRuntimeType)' == 'Core'">CurrentArchitecture</GenerateResourceMSBuildArchitecture>
+    <GenerateResourceUsePreserializedResources Condition="'$(GenerateResourceUsePreserializedResources)' == '' and '$(MSBuildRuntimeType)' == 'Core'">true</GenerateResourceUsePreserializedResources>
+    <GenerateSatelliteAssembliesForCore Condition="'$(GenerateSatelliteAssembliesForCore)' == '' and '$(MSBuildRuntimeType)' == 'Core'">true</GenerateSatelliteAssembliesForCore>
+    <LCMSBuildArchitecture Condition="'$(LCMSBuildArchitecture)' == '' and '$(MSBuildRuntimeType)' == 'Core'">CurrentArchitecture</LCMSBuildArchitecture>
     <ProjectGuid>{A2C956E6-79AB-47AD-A7B4-DEF2F7A7EF19}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -116,6 +120,10 @@
     <Reference Include="System.Speech" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Resources.Extensions" Condition="'$(MSBuildRuntimeType)' == 'Core'">
+      <HintPath>$(MSBuildToolsPath)\System.Resources.Extensions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="zxing, Version=0.16.10.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
       <HintPath>packages\ZXing.Net.0.16.10\lib\net47\zxing.dll</HintPath>
     </Reference>
@@ -509,7 +517,6 @@
       <DependentUpon>frm_versiyon_indir.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\licenses.licx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>

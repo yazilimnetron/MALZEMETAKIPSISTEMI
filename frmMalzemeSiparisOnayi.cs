@@ -44,6 +44,15 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             gridControlMalzemeTalepDepartman.DataSource = null;
             gridControlMalzemeTalepleri.DataSource = null;
+            malzeme_DepoDurum = string.Empty;
+            SetOnayRedButtonsByDurum();
+        }
+
+        private void SetOnayRedButtonsByDurum()
+        {
+            bool isOnaysiz = string.Equals(malzeme_DepoDurum, "Onaysız", StringComparison.OrdinalIgnoreCase);
+            this.simpleButtonMalzemeSiparisOnay.Enabled = isOnaysiz;
+            this.simpleButtonMalzemeSiparisRed.Enabled = isOnaysiz;
         }
 
         public void InitForm()
@@ -421,17 +430,10 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void gridViewMalzemeTalepleri_CellValueChanging(object sender, DevExpress.XtraGrid.Views.Base.CellValueChangedEventArgs e)
         {
-            //int MALZEMEDEPOISTEM_ID = 0, MALZEMEISTEM_ID = 0;
-            StringBuilder sbU = new StringBuilder();
-
             if (e.Column.GetTextCaption() == "SEC")
             {
-                MALZEMEISTEM_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetRowCellValue(e.RowHandle, gridViewMalzemeTalepleri.Columns["MALZEMEISTEM_ID"]).ToString());
-
-                sbU.Append("Update TBL_LST_MALZEMEISTEM set ");
-                sbU.AppendFormat(" MALZEMEISTEM_DURUM={0}", e.Value.ToString());
-                sbU.AppendFormat(" where MALZEMEISTEM_ID={0}", MALZEMEISTEM_ID.ToString());
-                clSqlTanim.RunStoredProc(sbU.ToString());
+                // SEC değişimi kullanıcı seçimidir; DB güncellemesi yalnızca Onay/Red butonlarında yapılır.
+                return;
             }
 
             //if (e.Column.GetTextCaption() == "MALZEME SİPARİŞ ADET")
@@ -549,45 +551,72 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void simpleButtonMalzemeTalepOnayla_Click(object sender, EventArgs e)
         {
-            int deger = 0, MALZEME_ID = 0, MALZEMEISTEM_MALZEMEDEPOISTEMID = 0;
-            //int MALZEME_ID = 0, MALZEMEISTEM_MALZEMEDEPOISTEMID = 0;
-            StringBuilder sbU = new StringBuilder(1024);
-            StringBuilder sbUU = new StringBuilder(1024);
-            string strSQL = String.Empty;
+            if (clGenelTanim.currentYoneticiMi != 1)
+            {
+                XtraMessageBox.Show("Bu işlem için yönetici yetkisi gereklidir.", "Yetki", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
+            if (gridViewMalzemeTalepleri.RowCount < 1)
+            {
+                XtraMessageBox.Show("Onaylanacak sipariş satırı bulunamadı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             if (DialogResult.Yes == XtraMessageBox.Show("Sipariş Onaylansın mı?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
+                    int depoIstemId = clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetRowCellValue(gridViewMalzemeTalepleri.FocusedRowHandle, "MALZEMEISTEM_MALZEMEDEPOISTEMID"));
+                    if (depoIstemId <= 0)
+                    {
+                        XtraMessageBox.Show("Geçerli sipariş başlığı bulunamadı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    int onaylananAdet = 0;
+                    int reddedilenAdet = 0;
+                    StringBuilder sbTx = new StringBuilder(4096);
+                    sbTx.AppendLine("BEGIN TRY");
+                    sbTx.AppendLine("BEGIN TRAN");
 
                     for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
                     {
-                        deger = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["SEC"].ToString());
-                        //MALZEME_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString());
-                        //MALZEMEISTEM_MALZEMEDEPOISTEMID = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString());
-
-                        if (deger == 1)
+                        int deger = clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["SEC"]);
+                        int malzemeId = clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"]);
+                        int siparisDepoIstemId = clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"]);
+                        int satirDurum = deger == 1 ? 1 : 2;
+                        if (satirDurum == 1)
                         {
-                            sbUU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 1 ");
-                            sbUU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString()));
+                            onaylananAdet++;
+                        }
+                        else
+                        {
+                            reddedilenAdet++;
                         }
 
-                        if (deger == 0)
-                        {
-                            sbUU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 2 ");
-                            sbUU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString()));
-                        }
-
-                        sbUU.Append(Environment.NewLine);
+                        sbTx.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = ");
+                        sbTx.Append(satirDurum);
+                        sbTx.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", malzemeId, siparisDepoIstemId);
+                        sbTx.AppendLine();
                     }
 
-                    clSqlTanim.RunStoredProc(sbUU.ToString());
+                    int depoDurum = onaylananAdet > 0 ? 1 : 2;
+                    sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM = {0}, MALZEMEDEPOISTEM_ONAYTARIHI='{1}', MALZEMEDEPOISTEM_ONAYKULLANICIID={2} WHERE MALZEMEDEPOISTEM_ID={3};",
+                        depoDurum,
+                        Convert.ToDateTime(DateTime.Now).ToString("yyyy-MM-dd HH:mm"),
+                        clGenelTanim.KullaniciKodu.ToString(),
+                        depoIstemId);
+                    sbTx.AppendLine();
+                    sbTx.AppendLine("COMMIT TRAN");
+                    sbTx.AppendLine("END TRY");
+                    sbTx.AppendLine("BEGIN CATCH");
+                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
+                    sbTx.AppendLine("THROW");
+                    sbTx.AppendLine("END CATCH");
 
-                    sbU.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM = {0}, MALZEMEDEPOISTEM_ONAYTARIHI='{1}', MALZEMEDEPOISTEM_ONAYKULLANICIID={2}", 1, Convert.ToDateTime(DateTime.Now).ToString("yyyy-MM-dd HH:mm"), clGenelTanim.KullaniciKodu.ToString());
-                    sbU.AppendFormat(" WHERE MALZEMEDEPOISTEM_ID={0}", gridViewMalzemeTalepleri.GetRowCellValue(gridViewMalzemeTalepleri.FocusedRowHandle, "MALZEMEISTEM_MALZEMEDEPOISTEMID").ToString());
-                    clSqlTanim.RunStoredProc(sbU.ToString());
-                    XtraMessageBox.Show("Sipariş Onaylandı ...");
+                    clSqlTanim.RunStoredProc(sbTx.ToString());
+                    XtraMessageBox.Show(reddedilenAdet > 0 && onaylananAdet == 0 ? "Sipariş Reddedildi ..." : "Sipariş Onaylandı ...");
 
                     if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
                     {
@@ -816,31 +845,19 @@ namespace MALZEME_TAKIP_SISTEMI
                 malzeme_DepoDurum = clGenelTanim.DBToString(item["SİPARİŞ DURUM"]);
 
                 MALZEMEDEPOISTEMID(this.MALZEMEDEPOISTEM_ID);
-
-                if (malzeme_DepoDurum == "Teslim Edildi" || malzeme_DepoDurum == "Reddedildi" || malzeme_DepoDurum == "Onaylı")
-                {
-                    if (clGenelTanim.currentYoneticiMi == 1)
-                    {
-                        this.simpleButtonMalzemeSiparisOnay.Enabled = true;
-                        this.simpleButtonMalzemeSiparisRed.Enabled = true;
-                    }
-                    else
-                    {
-                        this.simpleButtonMalzemeSiparisOnay.Enabled = false;
-                        this.simpleButtonMalzemeSiparisRed.Enabled = false;
-                    }
-                }
-                else
-                {
-                    this.simpleButtonMalzemeSiparisOnay.Enabled = true;
-                    this.simpleButtonMalzemeSiparisRed.Enabled = true;
-                }
+                SetOnayRedButtonsByDurum();
 
             }
         }
 
         private void gridViewMalzemeTalepleri_ShowingEditor(object sender, CancelEventArgs e)
         {
+            if (clGenelTanim.currentYoneticiMi != 1)
+            {
+                e.Cancel = true;
+                return;
+            }
+
             if (malzeme_DepoDurum == "Onaysız")
             {
                 GridView view = sender as GridView;
@@ -853,42 +870,43 @@ namespace MALZEME_TAKIP_SISTEMI
                 else { e.Cancel = true; }
 
             }
-            else { e.Cancel = true; } //Diğer durumlarda editable false
+            else { e.Cancel = true; } 
 
         }
 
         private void simpleButtonMalzemeSiparisRed_Click(object sender, EventArgs e)
         {
-            StringBuilder sbU = new StringBuilder(512);
-
+            if (clGenelTanim.currentYoneticiMi != 1)
+            {
+                XtraMessageBox.Show("Bu işlem için yönetici yetkisi gereklidir.", "Yetki", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             var item = gridViewMalzemeTalepDepartman.GetFocusedDataRow();
-            var item2 = gridViewMalzemeTalepleri.GetFocusedDataRow();
             if (DialogResult.Yes == XtraMessageBox.Show("Sipariş İptal Edilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
                     if (item != null)
                     {
-                        sbU.Append("Update TBL_LST_MALZEMEDEPOISTEM set ");
-                        sbU.AppendFormat(" MALZEMEDEPOISTEM_DURUM={0}", 2);
-                        sbU.AppendFormat(" where MALZEMEDEPOISTEM_ID={0}", clGenelTanim.DBToInt32(item["MALZEMEISTEM_MALZEMEDEPOISTEMID"]));
-                        clSqlTanim.RunStoredProc(sbU.ToString());
+                        int depoIstemId = clGenelTanim.DBToInt32(item["MALZEMEISTEM_MALZEMEDEPOISTEMID"]);
+                        StringBuilder sbTx = new StringBuilder(1024);
+                        sbTx.AppendLine("BEGIN TRY");
+                        sbTx.AppendLine("BEGIN TRAN");
+                        sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM={0} WHERE MALZEMEDEPOISTEM_ID={1};", 2, depoIstemId);
+                        sbTx.AppendLine();
+                        sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM={0} WHERE MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", 2, depoIstemId);
+                        sbTx.AppendLine();
+                        sbTx.AppendFormat("DELETE FROM TBL_LST_MALZEMECIKIS WHERE MALZEMECIKIS_MALZEMEDEPOISTEM_ID={0};", depoIstemId);
+                        sbTx.AppendLine();
+                        sbTx.AppendLine("COMMIT TRAN");
+                        sbTx.AppendLine("END TRY");
+                        sbTx.AppendLine("BEGIN CATCH");
+                        sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
+                        sbTx.AppendLine("THROW");
+                        sbTx.AppendLine("END CATCH");
 
-                        for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
-                        {
-                            StringBuilder sbUU = new StringBuilder(512);
-                            StringBuilder sbUUU = new StringBuilder(512);
-
-                            sbUU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 2 ");
-                            sbUU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString()));
-                            clSqlTanim.RunStoredProc(sbUU.ToString());
-
-                            //sbUUU.Append("UPDATE TBL_LST_MALZEMELER SET MALZEME_STOKMIKTARI = MALZEME_STOKMIKTARI + ");
-                            //sbUUU.Append(clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME SİPARİŞ ADET"].ToString()));
-                            //sbUUU.AppendFormat(" WHERE MALZEME_ID={0}", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()));
-                            //clSqlTanim.RunStoredProc(sbUUU.ToString());
-                        }
+                        clSqlTanim.RunStoredProc(sbTx.ToString());
 
                         XtraMessageBox.Show("Sipariş Reddetildi...");
                     }

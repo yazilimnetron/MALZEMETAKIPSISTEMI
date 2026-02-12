@@ -64,7 +64,6 @@ namespace MALZEME_TAKIP_SISTEMI
         public frmMalzemeTalepIhtiyac()
         {
             InitializeComponent();
-            radioGroupDurum.EditValueChanged += radioGroupDurum_EditValueChanged;
         }
 
         void SetGridFont(GridView view, Font font)
@@ -406,3 +405,4 @@ ORDER BY 4;";
         }
     }
 }
+
