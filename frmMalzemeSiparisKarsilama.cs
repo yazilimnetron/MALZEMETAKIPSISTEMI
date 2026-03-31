@@ -1,10 +1,10 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Repository;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraReports.Parameters;
 using DevExpress.XtraReports.UI;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.ComponentModel;
 using System.Data;
@@ -14,9 +14,9 @@ using System.Windows.Forms;
 using System.Speech.Synthesis;
 using System.Data.SqlClient;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeSiparisKarsilama : Form
+    public partial class frmMalzemeSiparisKarsilama : FrmBase
     {
         public int MALZEMEDEPOISTEM_ID = 0, MALZEMEDEPARTMAN_ID = 0, MALZEME_ID = 0, MALZEMEISTEM_ID = 0;
         public int malzemesiparisKullanici = 0;
@@ -27,19 +27,31 @@ namespace MALZEME_TAKIP_SISTEMI
             layoutControlMalzemeTalepIslemleri.LayoutKontrolleriniSifirla();
         }
 
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
-        }
         public void gridTemizle()
         {
             gridControlMalzemeTalepDepartman.DataSource = null;
             gridControlMalzemeTalepleri.DataSource = null;
         }
 
-        public void InitForm()
+        private static readonly string[] StatusFilters = new[]
+        {
+            "isnull(MALZEMEDEPOISTEM_DURUM,0) <> 2",
+            "isnull(MALZEMEDEPOISTEM_DURUM,0) = 1",
+            "isnull(MALZEMEDEPOISTEM_DURUM,0) = 0",
+            "isnull(MALZEMEDEPOISTEM_DURUM,0) = 3",
+            "isnull(MALZEMEDEPOISTEM_DURUM,0) NOT IN (2, 3)",
+        };
+
+        private void RefreshList()
+        {
+            int idx = radioGroupMalzemeTalepCikis.SelectedIndex;
+            if (idx >= 0 && idx < StatusFilters.Length)
+                LoadOrderList(StatusFilters[idx]);
+        }
+
+        public void InitForm() => LoadOrderList(StatusFilters[0]);
+
+        public void LoadOrderList(string statusFilter)
         {
             gridTemizle();
 
@@ -50,199 +62,36 @@ namespace MALZEME_TAKIP_SISTEMI
             sb.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
             sb.Append("JOIN TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ON TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ID=TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_KULLANICIID ");
             sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ON TBL_LST_MALZEMEDEPARTMANLAR.MALZEME_DEPARTMANID = TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.AppendFormat("WHERE isnull(MALZEMEDEPOISTEM_DURUM,0) <>2 ");
-            if (checkEditTumListe.Checked == false)
-            {
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)>={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)<={0}", "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
+            sb.AppendFormat("WHERE {0} ", statusFilter);
 
+            SqlParameter[] parameters = null;
+            if (!checkEditTumListe.Checked)
+            {
+                sb.Append("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI,121) >= @basTarih ");
+                sb.Append("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI,121) <= @bitTarih ");
+                parameters = new[]
+                {
+                    new SqlParameter("@basTarih", Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd")),
+                    new SqlParameter("@bitTarih", Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd")),
+                };
             }
+
             sb.Append("GROUP BY MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI, MALZEMEKULLANICI_ADI, MALZEMEDEPOISTEM_DURUM, MALZEMEDEPOISTEM_ISTEMTARIHI, MALZEMEDEPOISTEM_DEPARTMANID, MALZEMEDEPOISTEM_ONAYTARIHI ");
             sb.Append("ORDER BY 1 DESC");
 
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
+            DataTable dtMalzemeler = parameters != null
+                ? clSqlTanim.RunStoredProc(sb.ToString(), parameters)
+                : clSqlTanim.RunStoredProc(sb.ToString());
             gridControlMalzemeTalepDepartman.DataSource = dtMalzemeler;
 
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
-
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.DisplayFormat = "{0} Kayıt";
-
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].Visible = false;
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].Visible = false;
-
-
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsColumn.ShowInCustomizationForm = false;
             this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].OptionsColumn.ShowInCustomizationForm = false;
-
-
             this.SetGridFont(gridViewMalzemeTalepDepartman, new Font("Tahoma", 10, FontStyle.Bold));
-
-            this.gridViewMalzemeTalepDepartman.BestFitColumns();
-
-        }
-
-        public void InitForm1()
-        {
-            gridTemizle();
-
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("SELECT MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI AS 'DEPARTMAN ADI', TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID, TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ADI AS 'KULLANICI ADI', ");
-            sb.Append("Case When isnull(MALZEMEDEPOISTEM_DURUM,0)=0 then 'Onaysız' when isnull(MALZEMEDEPOISTEM_DURUM,0)=1 then 'Onaylı' when isnull(MALZEMEDEPOISTEM_DURUM,0) =2 then 'Reddedildi' when isnull(MALZEMEDEPOISTEM_DURUM,0)=3 then 'Teslim Edildi' end 'SİPARİŞ DURUM', MALZEMEDEPOISTEM_ISTEMTARIHI AS 'SİPARİŞ TARİHİ' ");
-            sb.Append("FROM TBL_LST_MALZEMEISTEM (NOLOCK) ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
-            sb.Append("JOIN TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ON TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ID=TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_KULLANICIID ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ON TBL_LST_MALZEMEDEPARTMANLAR.MALZEME_DEPARTMANID = TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.AppendFormat("WHERE isnull(MALZEMEDEPOISTEM_DURUM,0) = '1' ");
-            if (checkEditTumListe.Checked == false)
-            {
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)>={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)<={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            }
-            sb.Append("GROUP BY MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI, MALZEMEKULLANICI_ADI, MALZEMEDEPOISTEM_DURUM, MALZEMEDEPOISTEM_ISTEMTARIHI,MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.Append("ORDER BY 1 DESC");
-
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
-            gridControlMalzemeTalepDepartman.DataSource = dtMalzemeler;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.DisplayFormat = "{0} Kayıt";
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].Visible = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].Visible = false;
-
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsColumn.ShowInCustomizationForm = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].OptionsColumn.ShowInCustomizationForm = false;
-
-            this.SetGridFont(gridViewMalzemeTalepDepartman, new Font("Tahoma", 10, FontStyle.Bold));
-
-            this.gridViewMalzemeTalepDepartman.BestFitColumns();
-
-        }
-
-        public void InitForm2()
-        {
-            gridTemizle();
-
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("SELECT MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI AS 'DEPARTMAN ADI', TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID, TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ADI AS 'KULLANICI ADI', ");
-            sb.Append("Case When isnull(MALZEMEDEPOISTEM_DURUM,0)=0 then 'Onaysız' when isnull(MALZEMEDEPOISTEM_DURUM,0)=1 then 'Onaylı' when isnull(MALZEMEDEPOISTEM_DURUM,0) =2 then 'Reddedildi' when isnull(MALZEMEDEPOISTEM_DURUM,0)=3 then 'Teslim Edildi' end 'SİPARİŞ DURUM', MALZEMEDEPOISTEM_ISTEMTARIHI AS 'SİPARİŞ TARİHİ' ");
-            sb.Append("FROM TBL_LST_MALZEMEISTEM (NOLOCK) ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
-            sb.Append("JOIN TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ON TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ID=TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_KULLANICIID ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ON TBL_LST_MALZEMEDEPARTMANLAR.MALZEME_DEPARTMANID = TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.AppendFormat("WHERE isnull(MALZEMEDEPOISTEM_DURUM,0)='0' ");
-            if (checkEditTumListe.Checked == false)
-            {
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)>={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)<={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            }
-            sb.Append("GROUP BY MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI, MALZEMEKULLANICI_ADI, MALZEMEDEPOISTEM_DURUM, MALZEMEDEPOISTEM_ISTEMTARIHI,MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.Append("ORDER BY 1 DESC");
-
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
-            gridControlMalzemeTalepDepartman.DataSource = dtMalzemeler;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.DisplayFormat = "{0} Kayıt";
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].Visible = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].Visible = false;
-
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsColumn.ShowInCustomizationForm = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].OptionsColumn.ShowInCustomizationForm = false;
-
-            this.SetGridFont(gridViewMalzemeTalepDepartman, new Font("Tahoma", 10, FontStyle.Bold));
-
-            this.gridViewMalzemeTalepDepartman.BestFitColumns();
-
-        }
-
-
-        public void InitForm3()
-        {
-            gridTemizle();
-
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("SELECT MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI AS 'DEPARTMAN ADI', TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID, TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ADI AS 'KULLANICI ADI', ");
-            sb.Append("Case When isnull(MALZEMEDEPOISTEM_DURUM,0)=0 then 'Onaysız' when isnull(MALZEMEDEPOISTEM_DURUM,0)=1 then 'Onaylı' when isnull(MALZEMEDEPOISTEM_DURUM,0) =2 then 'Reddedildi' when isnull(MALZEMEDEPOISTEM_DURUM,0)=3 then 'Teslim Edildi' end 'SİPARİŞ DURUM', MALZEMEDEPOISTEM_ISTEMTARIHI AS 'SİPARİŞ TARİHİ' ");
-            sb.Append("FROM TBL_LST_MALZEMEISTEM (NOLOCK) ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
-            sb.Append("JOIN TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ON TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ID=TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_KULLANICIID ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ON TBL_LST_MALZEMEDEPARTMANLAR.MALZEME_DEPARTMANID = TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.AppendFormat("WHERE isnull(MALZEMEDEPOISTEM_DURUM,0)='3' ");
-            if (checkEditTumListe.Checked == false)
-            {
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)>={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)<={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            }
-            sb.Append("GROUP BY MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI, MALZEMEKULLANICI_ADI, MALZEMEDEPOISTEM_DURUM, MALZEMEDEPOISTEM_ISTEMTARIHI,MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.Append("ORDER BY 1 DESC");
-
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
-            gridControlMalzemeTalepDepartman.DataSource = dtMalzemeler;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.DisplayFormat = "{0} Kayıt";
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].Visible = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].Visible = false;
-
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsColumn.ShowInCustomizationForm = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].OptionsColumn.ShowInCustomizationForm = false;
-
-            this.SetGridFont(gridViewMalzemeTalepDepartman, new Font("Tahoma", 10, FontStyle.Bold));
-
-            this.gridViewMalzemeTalepDepartman.BestFitColumns();
-        }
-
-
-        public void InitForm4()
-        {
-            gridTemizle();
-
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("SELECT MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI AS 'DEPARTMAN ADI', TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID, TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ADI AS 'KULLANICI ADI', ");
-            sb.Append("Case When isnull(MALZEMEDEPOISTEM_DURUM,0)=0 then 'Onaysız' when isnull(MALZEMEDEPOISTEM_DURUM,0)=1 then 'Onaylı' when isnull(MALZEMEDEPOISTEM_DURUM,0) =2 then 'Reddedildi' when isnull(MALZEMEDEPOISTEM_DURUM,0)=3 then 'Teslim Edildi' end 'SİPARİŞ DURUM', MALZEMEDEPOISTEM_ISTEMTARIHI AS 'SİPARİŞ TARİHİ' ");
-            sb.Append("FROM TBL_LST_MALZEMEISTEM (NOLOCK) ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
-            sb.Append("JOIN TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ON TBL_LST_MALZEMEKULLANICILAR.MALZEMEKULLANICI_ID=TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_KULLANICIID ");
-            sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ON TBL_LST_MALZEMEDEPARTMANLAR.MALZEME_DEPARTMANID = TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.AppendFormat("WHERE isnull(MALZEMEDEPOISTEM_DURUM,0) not in ('3','2') ");
-            if (checkEditTumListe.Checked == false)
-            {
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)>={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-                sb.AppendFormat("AND CONVERT(varchar(10),TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ISTEMTARIHI ,121)<={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            }
-            sb.Append("GROUP BY MALZEMEISTEM_MALZEMEDEPOISTEMID, MALZEME_DEPARTMANADI, MALZEMEKULLANICI_ADI, MALZEMEDEPOISTEM_DURUM, MALZEMEDEPOISTEM_ISTEMTARIHI,MALZEMEDEPOISTEM_DEPARTMANID ");
-            sb.Append("ORDER BY 1 DESC");
-
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
-            gridControlMalzemeTalepDepartman.DataSource = dtMalzemeler;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.SummaryType = DevExpress.Data.SummaryItemType.Count;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].SummaryItem.DisplayFormat = "{0} Kayıt";
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].Visible = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].Visible = false;
-
-
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEISTEM_MALZEMEDEPOISTEMID"].OptionsColumn.ShowInCustomizationForm = false;
-            this.gridViewMalzemeTalepDepartman.Columns["MALZEMEDEPOISTEM_DEPARTMANID"].OptionsColumn.ShowInCustomizationForm = false;
-
-            this.SetGridFont(gridViewMalzemeTalepDepartman, new Font("Tahoma", 10, FontStyle.Bold));
-
             this.gridViewMalzemeTalepDepartman.BestFitColumns();
         }
 
@@ -251,30 +100,7 @@ namespace MALZEME_TAKIP_SISTEMI
             timer1.Interval = 60 * 60 * 100;
             timer1.Start();
 
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-            {
-                InitForm();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-            {
-                InitForm1();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-            {
-                InitForm2();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-            {
-                InitForm3();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-            {
-                InitForm4();
-            }
+            RefreshList();
 
         }
 
@@ -292,8 +118,8 @@ namespace MALZEME_TAKIP_SISTEMI
             sb3.Append("INNER JOIN TBL_LST_MALZEMEDEPARTMANLAR d (NOLOCK) ON a.MALZEMEISTEM_MALZEMEDEPARTMANISTEMID=d.MALZEME_DEPARTMANID ");
             sb3.Append("LEFT OUTER JOIN (Select  MALZEMEGIRIS_MALZEMELERID, Sum(MALZEMEGIRIS_ADET) GirislerToplam FROM TBL_LST_MALZEMEGIRIS GROUP BY  MALZEMEGIRIS_MALZEMELERID) g ON g.MALZEMEGIRIS_MALZEMELERID = b.MALZEME_ID ");
             sb3.Append("LEFT OUTER JOIN (Select  MALZEMECIKIS_MALZEMELERID, Sum(MALZEMECIKIS_ADET) CikislarToplam FROM TBL_LST_MALZEMECIKIS GROUP BY  MALZEMECIKIS_MALZEMELERID) c ON c.MALZEMECIKIS_MALZEMELERID = b.MALZEME_ID ");
-            sb3.AppendFormat("WHERE ISNULL(a.MALZEMEISTEM_DURUM,0) <>2 and a.MALZEMEISTEM_MALZEMEDEPOISTEMID={0}", MALZEMEDEPOISTEM_ID.ToString());
-            DataTable dtMalzemeler3 = clSqlTanim.RunStoredProc(sb3.ToString());
+            sb3.Append("WHERE ISNULL(a.MALZEMEISTEM_DURUM,0) <>2 and a.MALZEMEISTEM_MALZEMEDEPOISTEMID=@istemId");
+            DataTable dtMalzemeler3 = clSqlTanim.RunStoredProc(sb3.ToString(), new[] { new SqlParameter("@istemId", MALZEMEDEPOISTEM_ID) });
             gridControlMalzemeTalepleri.DataSource = dtMalzemeler3;
 
             RepositoryItemCheckEdit chkMalzemeDurum = new DevExpress.XtraEditors.Repository.RepositoryItemCheckEdit() { ValueUnchecked = 0, ValueChecked = 1, ValueGrayed = "" };
@@ -341,23 +167,17 @@ namespace MALZEME_TAKIP_SISTEMI
             if (e.Column.GetTextCaption() == "SEC")
             {
                 MALZEMEISTEM_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetRowCellValue(e.RowHandle, gridViewMalzemeTalepleri.Columns["MALZEMEISTEM_ID"]).ToString());
-
-                StringBuilder sbU = new StringBuilder();
-                sbU.Append("Update TBL_LST_MALZEMEISTEM set ");
-                sbU.AppendFormat(" MALZEMEISTEM_DURUM={0}", e.Value.ToString());
-                sbU.AppendFormat(" where MALZEMEISTEM_ID={0}", MALZEMEISTEM_ID.ToString());
-                clSqlTanim.RunStoredProc(sbU.ToString());
+                clSqlTanim.ExecuteNonQuery(
+                    "UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM=@durum WHERE MALZEMEISTEM_ID=@id",
+                    new[] { new SqlParameter("@durum", Convert.ToInt32(e.Value)), new SqlParameter("@id", MALZEMEISTEM_ID) });
             }
 
             if (e.Column.GetTextCaption() == "MALZEME TALEP ADET")
             {
                 MALZEMEISTEM_ID = Convert.ToInt32(gridViewMalzemeTalepleri.GetRowCellValue(e.RowHandle, gridViewMalzemeTalepleri.Columns["MALZEMEISTEM_ID"]).ToString());
-
-                StringBuilder sbU = new StringBuilder();
-                sbU.Append("Update TBL_LST_MALZEMEISTEM set ");
-                sbU.AppendFormat(" MALZEMEISTEM_ADET={0}", e.Value.ToString());
-                sbU.AppendFormat(" where MALZEMEISTEM_ID={0}", MALZEMEISTEM_ID.ToString());
-                clSqlTanim.RunStoredProc(sbU.ToString());
+                clSqlTanim.ExecuteNonQuery(
+                    "UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_ADET=@adet WHERE MALZEMEISTEM_ID=@id",
+                    new[] { new SqlParameter("@adet", Convert.ToInt32(e.Value)), new SqlParameter("@id", MALZEMEISTEM_ID) });
             }
 
         }
@@ -379,71 +199,52 @@ namespace MALZEME_TAKIP_SISTEMI
             {
                 try
                 {
-                    StringBuilder sbTx = new StringBuilder(4096);
-                    StringBuilder sbU = new StringBuilder(2048);
                     bool hasTeslimSatiri = false;
-
-                    for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
+                    using (var conn = new System.Data.SqlClient.SqlConnection(clSqlTanim.connectionString))
                     {
-                        deger = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["SEC"].ToString());
-                        if (deger != 1) continue;
+                        conn.Open();
+                        using (var tx = conn.BeginTransaction())
+                        try
+                        {
+                            for (int i = 0; i < gridViewMalzemeTalepleri.RowCount; i++)
+                            {
+                                deger = Convert.ToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["SEC"].ToString());
+                                if (deger != 1) continue;
+                                hasTeslimSatiri = true;
+                                using (var cmd = new System.Data.SqlClient.SqlCommand(
+                                    "UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM=3 WHERE MALZEMEISTEM_MALZEMELERID=@mId AND MALZEMEISTEM_MALZEMEDEPOISTEMID=@dId",
+                                    conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@mId", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"]));
+                                    cmd.Parameters.AddWithValue("@dId", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"]));
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
 
-                        hasTeslimSatiri = true;
+                            if (!hasTeslimSatiri)
+                            {
+                                tx.Rollback();
+                                XtraMessageBox.Show("Teslim için en az bir satır seçmelisiniz (SEC=1).", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                return;
+                            }
 
-                        sbU.Append("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM = 3 ");
-                        sbU.AppendFormat(" WHERE MALZEMEISTEM_MALZEMELERID={0} AND MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", clGenelTanim.DBToInt32(gridViewMalzemeTalepleri.GetDataRow(i)["MALZEME_ID"].ToString()), gridViewMalzemeTalepleri.GetDataRow(i)["MALZEMEISTEM_MALZEMEDEPOISTEMID"].ToString());
-                        sbU.AppendLine();
+                            using (var cmd2 = new System.Data.SqlClient.SqlCommand(
+                                "UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM=@d, MALZEMEDEPOISTEM_TESLIMKULLANICIID=@k, MALZEMEDEPOISTEM_TESLIMTARIHI=@t WHERE MALZEMEDEPOISTEM_ID=@id",
+                                conn, tx))
+                            {
+                                cmd2.Parameters.AddWithValue("@d",  3);
+                                cmd2.Parameters.AddWithValue("@k",  this.malzemesiparisKullanici);
+                                cmd2.Parameters.AddWithValue("@t",  DateTime.Now);
+                                cmd2.Parameters.AddWithValue("@id", MALZEMEDEPOISTEM_ID);
+                                cmd2.ExecuteNonQuery();
+                            }
+                            tx.Commit();
+                        }
+                        catch { tx.Rollback(); throw; }
                     }
-
-                    if (!hasTeslimSatiri)
-                    {
-                        XtraMessageBox.Show("Teslim için en az bir satır seçmelisiniz (SEC=1).", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    sbTx.AppendLine("BEGIN TRY");
-                    sbTx.AppendLine("BEGIN TRAN");
-                    sbTx.AppendLine(sbU.ToString());
-
-                    StringBuilder sbUUU = new StringBuilder(1024);
-                    sbUUU.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM = {0}, MALZEMEDEPOISTEM_TESLIMKULLANICIID={1}, MALZEMEDEPOISTEM_TESLIMTARIHI='{2}'", 3, this.malzemesiparisKullanici, Convert.ToDateTime(DateTime.Now).ToString("yyyy-MM-dd HH:mm"));
-                    sbUUU.AppendFormat(" WHERE MALZEMEDEPOISTEM_ID={0};", MALZEMEDEPOISTEM_ID.ToString());
-                    sbTx.AppendLine(sbUUU.ToString());
-                    sbTx.AppendLine("COMMIT TRAN");
-                    sbTx.AppendLine("END TRY");
-                    sbTx.AppendLine("BEGIN CATCH");
-                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
-                    sbTx.AppendLine("THROW");
-                    sbTx.AppendLine("END CATCH");
-
-                    clSqlTanim.RunStoredProc(sbTx.ToString());
 
                     XtraMessageBox.Show("Sipariş Onaylandı ...");
-
-                    if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-                    {
-                        InitForm();
-                    }
-
-                    if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-                    {
-                        InitForm1();
-                    }
-
-                    if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-                    {
-                        InitForm2();
-                    }
-
-                    if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-                    {
-                        InitForm3();
-                    }
-
-                    if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-                    {
-                        InitForm4();
-                    }
+                    RefreshList();
                 }
 
                 catch (Exception ex) { XtraMessageBox.Show(ex.Message, "BİLGİ ...", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -493,48 +294,27 @@ namespace MALZEME_TAKIP_SISTEMI
                 if (item != null)
                 {
                     int depoIstemId = clGenelTanim.DBToInt32(item["MALZEMEISTEM_MALZEMEDEPOISTEMID"]);
-                    StringBuilder sbTx = new StringBuilder(1024);
-                    sbTx.AppendLine("BEGIN TRY");
-                    sbTx.AppendLine("BEGIN TRAN");
-                    sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM={0} WHERE MALZEMEDEPOISTEM_ID={1};", 2, depoIstemId);
-                    sbTx.AppendLine();
-                    sbTx.AppendFormat("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM={0} WHERE MALZEMEISTEM_MALZEMEDEPOISTEMID={1};", 2, depoIstemId);
-                    sbTx.AppendLine();
-                    sbTx.AppendLine("COMMIT TRAN");
-                    sbTx.AppendLine("END TRY");
-                    sbTx.AppendLine("BEGIN CATCH");
-                    sbTx.AppendLine("IF @@TRANCOUNT > 0 ROLLBACK TRAN");
-                    sbTx.AppendLine("THROW");
-                    sbTx.AppendLine("END CATCH");
-                    clSqlTanim.RunStoredProc(sbTx.ToString());
+                    using (var conn = new System.Data.SqlClient.SqlConnection(clSqlTanim.connectionString))
+                    {
+                        conn.Open();
+                        using (var tx = conn.BeginTransaction())
+                        try
+                        {
+                            using (var c1 = new System.Data.SqlClient.SqlCommand("UPDATE TBL_LST_MALZEMEDEPOISTEM SET MALZEMEDEPOISTEM_DURUM=@d WHERE MALZEMEDEPOISTEM_ID=@id", conn, tx))
+                            { c1.Parameters.AddWithValue("@d", 2); c1.Parameters.AddWithValue("@id", depoIstemId); c1.ExecuteNonQuery(); }
+                            using (var c2 = new System.Data.SqlClient.SqlCommand("UPDATE TBL_LST_MALZEMEISTEM SET MALZEMEISTEM_DURUM=@d WHERE MALZEMEISTEM_MALZEMEDEPOISTEMID=@id", conn, tx))
+                            { c2.Parameters.AddWithValue("@d", 2); c2.Parameters.AddWithValue("@id", depoIstemId); c2.ExecuteNonQuery(); }
+                            using (var c3 = new System.Data.SqlClient.SqlCommand("DELETE FROM TBL_LST_MALZEMECIKIS WHERE MALZEMECIKIS_MALZEMEDEPOISTEM_ID=@id", conn, tx))
+                            { c3.Parameters.AddWithValue("@id", depoIstemId); c3.ExecuteNonQuery(); }
+                            tx.Commit();
+                        }
+                        catch { tx.Rollback(); throw; }
+                    }
 
                     XtraMessageBox.Show("Sipariş Reddetildi...");
                 }
 
-                if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-                {
-                    InitForm();
-                }
-
-                if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-                {
-                    InitForm1();
-                }
-
-                if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-                {
-                    InitForm2();
-                }
-
-                if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-                {
-                    InitForm3();
-                }
-
-                if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-                {
-                    InitForm4();
-                }
+                RefreshList();
             }
 
             catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
@@ -543,59 +323,13 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void dateEditTalepTarihi_EditValueChanged(object sender, EventArgs e)
         {
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-            {
-                InitForm();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-            {
-                InitForm1();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-            {
-                InitForm2();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-            {
-                InitForm3();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-            {
-                InitForm4();
-            }
+            RefreshList();
         }
 
         private void radioGroupMalzemeTalepCikis_SelectedIndexChanged(object sender, EventArgs e)
         {
 
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-            {
-                InitForm();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-            {
-                InitForm1();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-            {
-                InitForm2();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-            {
-                InitForm3();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-            {
-                InitForm4();
-            }
+            RefreshList();
         }
 
         private void gridViewMalzemeTalepDepartman_RowStyle(object sender, RowStyleEventArgs e)
@@ -621,30 +355,7 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void checkEditTumListe_CheckedChanged(object sender, EventArgs e)
         {
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-            {
-                InitForm();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-            {
-                InitForm1();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-            {
-                InitForm2();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-            {
-                InitForm3();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-            {
-                InitForm4();
-            }
+            RefreshList();
         }
 
         private void gridViewMalzemeTalepDepartman_DoubleClick(object sender, EventArgs e)
@@ -678,30 +389,7 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void simpleButtonListele_Click(object sender, EventArgs e)
         {
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 0) //Tümü
-            {
-                InitForm();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 1) //Onaylılar
-            {
-                InitForm1();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 2) //Onaysızlar
-            {
-                InitForm2();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 3) //Teslim Edilenler
-            {
-                InitForm3();
-            }
-
-            if (radioGroupMalzemeTalepCikis.SelectedIndex == 4) //Teslim Edilmeyenler
-            {
-                InitForm4();
-            }
+            RefreshList();
         }
 
         public void InıtForm5()

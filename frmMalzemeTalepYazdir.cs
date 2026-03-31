@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class MalzemeTalepYazdir : DevExpress.XtraEditors.XtraForm
     {
@@ -57,9 +58,11 @@ namespace MALZEME_TAKIP_SISTEMI
                 sbS.Append("FROM TBL_LST_MALZEMEISTEM (NOLOCK) ");
                 sbS.Append("JOIN TBL_LST_MALZEMECIKIS (NOLOCK) ON TBL_LST_MALZEMECIKIS.MALZEMECIKIS_MALZEMELERID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMELERID ");
                 sbS.Append("JOIN TBL_LST_MALZEMEDEPOISTEM (NOLOCK) ON TBL_LST_MALZEMEDEPOISTEM.MALZEMEDEPOISTEM_ID=TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID ");
-                sbS.AppendFormat("WHERE TBL_LST_MALZEMEISTEM.MALZEMEISTEM_DURUM={0} AND TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID={1} AND TBL_LST_MALZEMECIKIS.MALZEMECIKIS_DEPARTMAN = {2} ", 1, MALZEMETALEPCIKISDEPO_ID.ToString(), MALZEMETALEPCIKISDEPO_ID.ToString());
+                sbS.Append("WHERE TBL_LST_MALZEMEISTEM.MALZEMEISTEM_DURUM=1 AND TBL_LST_MALZEMEISTEM.MALZEMEISTEM_MALZEMEDEPOISTEMID=@depoId AND TBL_LST_MALZEMECIKIS.MALZEMECIKIS_DEPARTMAN=@depoId ");
 
-                DataTable dt = clSqlTanim.RunStoredProc(sbS.ToString());
+                DataTable dt = clSqlTanim.RunStoredProc(sbS.ToString(), new[] {
+                    new SqlParameter("@depoId", MALZEMETALEPCIKISDEPO_ID)
+                });
 
                 foreach (DataRow dr in dt.Rows)
                 {

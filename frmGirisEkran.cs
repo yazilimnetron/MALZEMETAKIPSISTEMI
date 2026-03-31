@@ -1,12 +1,11 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraBars;
-using MALZEMETAKIPSISTEMI;
 using System;
 using System.Data;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmGirisEkran : DevExpress.XtraBars.Ribbon.RibbonForm
     {
@@ -297,11 +296,11 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void barButtonItemSiparisIstatistik_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var form = new frmMalzemeSiparisIstatistikleri();
-            viewChildForm(form);
-            pictureEdit1.SendToBack();
-            ribbon.Minimized = true;
-            ribbon.ShowExpandCollapseButton = DefaultBoolean.True;
+            //var form = new frmMalzemeSiparisIstatistikleri();
+            //viewChildForm(form);
+            //pictureEdit1.SendToBack();
+            //ribbon.Minimized = true;
+            //ribbon.ShowExpandCollapseButton = DefaultBoolean.True;
         }
 
         private void barButtonItemDepoStokDurum_ItemClick(object sender, ItemClickEventArgs e)

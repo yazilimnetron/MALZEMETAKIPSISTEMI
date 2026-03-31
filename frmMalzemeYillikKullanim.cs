@@ -1,26 +1,20 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeYillikKullanim : Form
+    public partial class frmMalzemeYillikKullanim : FrmBase
     {
         public frmMalzemeYillikKullanim()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void frmMalzemeYillikKullanim_Load(object sender, EventArgs e)
@@ -45,12 +39,14 @@ namespace MALZEME_TAKIP_SISTEMI
             sb.Append("FROM TBL_LST_MALZEMELER a ");
             sb.Append("JOIN (SELECT  MALZEMEGIRIS_MALZEMELERID, MALZEMEGIRIS_BIRIMFIYAT, MALZEMEGIRIS_PARABIRIMI FROM TBL_LST_MALZEMEGIRIS (NOLOCK) WHERE MALZEMEGIRIS_ID IN (select MAX(MALZEMEGIRIS_ID) from TBL_LST_MALZEMEGIRIS GROUP BY MALZEMEGIRIS_MALZEMELERID) GROUP BY MALZEMEGIRIS_MALZEMELERID, MALZEMEGIRIS_BIRIMFIYAT, MALZEMEGIRIS_PARABIRIMI ) b on a.MALZEME_ID=b.MALZEMEGIRIS_MALZEMELERID ");
             sb.Append("JOIN (SELECT MALZEMECIKIS_MALZEMELERID,CONVERT(DECIMAL(8,0),SUM(MALZEMECIKIS_ADET)) AS MALZEME_CIKIS_ADET FROM TBL_LST_MALZEMECIKIS(NOLOCK) ");
-            sb.AppendFormat("WHERE CONVERT(VARCHAR(10),MALZEMECIKIS_TARIHI ,121)>={0}", "'" + Convert.ToDateTime(dateEditBaslangicTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            sb.AppendFormat("AND CONVERT(VARCHAR(10),MALZEMECIKIS_TARIHI ,121)<={0} ", "'" + Convert.ToDateTime(dateEditBitisTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
+            sb.Append("WHERE CONVERT(DATE, MALZEMECIKIS_TARIHI) >= @basTarih AND CONVERT(DATE, MALZEMECIKIS_TARIHI) <= @bitTarih ");
             sb.Append("GROUP BY MALZEMECIKIS_MALZEMELERID ) c on a.MALZEME_ID=c.MALZEMECIKIS_MALZEMELERID ");
             sb.Append("ORDER BY a.MALZEME_ADI");
 
-            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString());
+            DataTable dtMalzemeler = clSqlTanim.RunStoredProc(sb.ToString(), new[] {
+                new SqlParameter("@basTarih", SqlDbType.Date) { Value = dateEditBaslangicTarih.DateTime.Date },
+                new SqlParameter("@bitTarih", SqlDbType.Date) { Value = dateEditBitisTarih.DateTime.Date }
+            });
             gridControlListe.DataSource = dtMalzemeler;
 
             this.gridViewListe.Columns["MALZEME_ID"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;

@@ -1,10 +1,11 @@
-﻿using DevExpress.XtraEditors;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using DevExpress.XtraEditors;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmYetkiEkle : Form
     {
@@ -35,8 +36,8 @@ namespace MALZEME_TAKIP_SISTEMI
             if (comboBoxEditKullaniciAdi.SelectedIndex > 0)
             {
                 trvTumYetkilerKullanici.Nodes.Clear();
-                strSQL = "exec sel_Menuler " + comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString();
-                DataSet ds = clSqlTanim.RunStoredProcDS(strSQL, "yetki");
+                DataSet ds = clSqlTanim.RunStoredProcDS("exec sel_Menuler @kulId", "yetki",
+                    new[] { new SqlParameter("@kulId", comboBoxEditKullaniciAdi.SecilenDeger().Id) });
                 clSqlTanim.FillTree(trvTumYetkilerKullanici, ds.Tables[0]);
             }
         }
@@ -52,8 +53,8 @@ namespace MALZEME_TAKIP_SISTEMI
             }
             KID = clGenelTanim.DBToInt32(comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString());
 
-            string strSQL = "exec sel_Menuler " + KID.ToString();
-            DataTable dt = clSqlTanim.RunStoredProc(strSQL);
+            DataTable dt = clSqlTanim.RunStoredProc("exec sel_Menuler @kulId",
+                new[] { new SqlParameter("@kulId", KID) });
             clSqlTanim.FillTree(trvTumYetkilerKullanici, dt);
         }
 
@@ -66,8 +67,9 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             clSqlTanim.mucalsstree sn = (clSqlTanim.mucalsstree)trvTumYetkiler.SelectedNode;
             if (sn == null) return;
-            string strQuery = "exec up_MenuEkle " + comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString() + "," + sn.SetGetId.ToString() + ",1";
-            clSqlTanim.RunStoredProc(strQuery);
+            int kulId1 = clGenelTanim.DBToInt32(comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString());
+            clSqlTanim.ExecuteNonQuery("exec up_MenuEkle @kulId, @menuId, @durum",
+                new[] { new SqlParameter("@kulId", kulId1), new SqlParameter("@menuId", sn.SetGetId), new SqlParameter("@durum", 1) });
             YetkiTazele();
         }
 
@@ -75,8 +77,9 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             clSqlTanim.mucalsstree sn = (clSqlTanim.mucalsstree)trvTumYetkilerKullanici.SelectedNode;
             if (sn == null) return;
-            string strQuery = "exec up_MenuEkle " + comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString() + "," + sn.SetGetId.ToString() + ",0";
-            clSqlTanim.RunStoredProc(strQuery);
+            int kulId2 = clGenelTanim.DBToInt32(comboBoxEditKullaniciAdi.SecilenDeger().Id.ToString());
+            clSqlTanim.ExecuteNonQuery("exec up_MenuEkle @kulId, @menuId, @durum",
+                new[] { new SqlParameter("@kulId", kulId2), new SqlParameter("@menuId", sn.SetGetId), new SqlParameter("@durum", 0) });
             YetkiTazele();
         }
 

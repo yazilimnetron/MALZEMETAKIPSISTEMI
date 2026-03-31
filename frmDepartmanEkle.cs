@@ -1,7 +1,7 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,9 +9,9 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmDepartmanEkle : Form
+    public partial class frmDepartmanEkle : FrmBase
     {
         private int currentDepartmanID = -1;
         private DataSet dsDepartman = null;
@@ -20,12 +20,6 @@ namespace MALZEME_TAKIP_SISTEMI
         public frmDepartmanEkle()
         {
             InitializeComponent();
-        }
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void Kaydet()
@@ -39,47 +33,36 @@ namespace MALZEME_TAKIP_SISTEMI
             DataTable dtDepartman = this.yeniDepartman ? null : dsDepartman.Tables[0];
             DataRow rowDepartman = dtDepartman == null ? null : dtDepartman.Rows[0];
 
-            StringBuilder sbI = new StringBuilder(512);
-            StringBuilder sbU = new StringBuilder(512);
-
             if (DialogResult.Yes == XtraMessageBox.Show("Değişiklikler Kaydedilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
                     if (rowDepartman == null)
                     {
-                        sbI.Append("insert into TBL_LST_MALZEMEDEPARTMANLAR ( MALZEME_DEPARTMANADI, MALZEME_DEPARTMANDURUM ) select");
-                        sbI.AppendFormat("  {0}", clGenelTanim.tosqlstring(textEditDepartmanAdi.Text.ToString(), 50, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditDepartmanDurum.Checked));
-                        string insertQuery = sbI.ToString() + "\r\nSELECT @@IDENTITY";
-                        DataTable dt = clSqlTanim.RunStoredProc(insertQuery);
-                        if (dt != null && dt.Rows.Count > 0)
-                        {
-                            this.currentDepartmanID = clGenelTanim.DBToInt32(dt.Rows[0][0]);
-                        }
-                        else
-                        {
-                            this.currentDepartmanID = -1;
-                        }
+                        DataTable dt = clSqlTanim.RunStoredProc(
+                            "INSERT INTO TBL_LST_MALZEMEDEPARTMANLAR (MALZEME_DEPARTMANADI, MALZEME_DEPARTMANDURUM) VALUES (@adi, @durum); SELECT SCOPE_IDENTITY()",
+                            new[] {
+                                new System.Data.SqlClient.SqlParameter("@adi",   textEditDepartmanAdi.Text),
+                                new System.Data.SqlClient.SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditDepartmanDurum.Checked))
+                            });
+                        this.currentDepartmanID = dt != null && dt.Rows.Count > 0 ? clGenelTanim.DBToInt32(dt.Rows[0][0]) : -1;
                     }
                     else
                     {
-                        sbU.Append("update TBL_LST_MALZEMEDEPARTMANLAR set ");
-                        sbU.AppendFormat("  MALZEME_DEPARTMANADI={0}", clGenelTanim.tosqlstring(textEditDepartmanAdi.Text.ToString(), 50, true));
-                        sbU.AppendFormat(" ,MALZEME_DEPARTMANDURUM={0}", clGenelTanim.DBToInt32(checkEditDepartmanDurum.Checked));
-                        sbU.AppendFormat(" where MALZEME_DEPARTMANID={0}", clGenelTanim.DBToInt32(textEditDepartmanId.Text.ToString()));
-                        clSqlTanim.RunStoredProc(sbU.ToString());
+                        clSqlTanim.ExecuteNonQuery(
+                            "UPDATE TBL_LST_MALZEMEDEPARTMANLAR SET MALZEME_DEPARTMANADI=@adi, MALZEME_DEPARTMANDURUM=@durum WHERE MALZEME_DEPARTMANID=@id",
+                            new[] {
+                                new System.Data.SqlClient.SqlParameter("@adi",   textEditDepartmanAdi.Text),
+                                new System.Data.SqlClient.SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditDepartmanDurum.Checked)),
+                                new System.Data.SqlClient.SqlParameter("@id",    clGenelTanim.DBToInt32(textEditDepartmanId.Text))
+                            });
                     }
 
-                    if (sbI.Length > 50 || sbU.Length > 50)
-                    {
-                        InitForm();
-                        XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        this.simpleButtonDepartmanKaydet.Enabled = false;
-                        this.textEditDepartmanAdi.Enabled = false;
-                        departmanSec(currentDepartmanID);
-
-                    }
+                    InitForm();
+                    XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.simpleButtonDepartmanKaydet.Enabled = false;
+                    this.textEditDepartmanAdi.Enabled = false;
+                    departmanSec(currentDepartmanID);
                 }
 
                 catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
@@ -130,8 +113,6 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void frmDepartmanEkle_FormClosed(object sender, FormClosedEventArgs e)
         {
-            //frmGirisEkran frmGirisE = ((frmGirisEkran)Application.OpenForms["frmGirisEkran"]);
-            //frmGirisE.pictureEdit1.BringToFront();
         }
 
         private void KontrolVeriIliskileriniAyarla()
@@ -179,9 +160,10 @@ namespace MALZEME_TAKIP_SISTEMI
 
             sb.Append("SELECT MALZEME_DEPARTMANID, MALZEME_DEPARTMANADI AS 'DEPARTMAN ADI', MALZEME_DEPARTMANDURUM AS 'KULLANILIYOR'");
             sb.Append("FROM TBL_LST_MALZEMEDEPARTMANLAR (NOLOCK) ");
-            sb.AppendFormat("WHERE MALZEME_DEPARTMANID={0}", departmanId.ToString());
+            sb.Append("WHERE MALZEME_DEPARTMANID=@deptId");
 
-            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "DB");
+            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "DB",
+                new[] { new System.Data.SqlClient.SqlParameter("@deptId", departmanId) });
             this.dsDepartman = ds;
 
             DepartmanBilgileriniDoldur(ds);
@@ -215,9 +197,6 @@ namespace MALZEME_TAKIP_SISTEMI
             if (DialogResult.Yes == XtraMessageBox.Show("Çıkış yapmak istediğiniden eminmisiniz?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 this.Close();
-
-                //frmGirisEkran frmGirisE = ((frmGirisEkran)Application.OpenForms["frmGirisEkran"]);
-                //frmGirisE.pictureEdit1.BringToFront();
             }
         }
 
@@ -229,10 +208,9 @@ namespace MALZEME_TAKIP_SISTEMI
 
             if (DialogResult.Yes == XtraMessageBox.Show(title, "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                StringBuilder sbD = new StringBuilder(300);
-                sbD.AppendFormat("delete from TBL_LST_MALZEMEDEPARTMANLAR where MALZEME_DEPARTMANID={0}", this.currentDepartmanID);
-
-                clSqlTanim.ExecuteNonQuery(sbD.ToString());
+                clSqlTanim.ExecuteNonQuery(
+                    "DELETE FROM TBL_LST_MALZEMEDEPARTMANLAR WHERE MALZEME_DEPARTMANID=@id",
+                    new[] { new System.Data.SqlClient.SqlParameter("@id", this.currentDepartmanID) });
 
                 InitForm();
 

@@ -1,19 +1,20 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraReports.Parameters;
 using DevExpress.XtraReports.UI;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
-using MALZEMETAKIPSISTEMI;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
+using System.Globalization;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeCikisEkle : Form
+    public partial class frmMalzemeCikisEkle : FrmBase
     {
         private bool yeniMalzemeCikis = true;
 
@@ -28,13 +29,6 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             InitializeComponent();
             layoutControlMalzemeCikis.LayoutKontrolleriniSifirla();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         void bilgileriGetir()
@@ -64,10 +58,10 @@ namespace MALZEME_TAKIP_SISTEMI
                 //sb.Append(" order by 1 desc");
                 //DataTable dt = clSqlTanim.RunStoredProc(sb.ToString());
 
-                DataTable dt = clSqlTanim.RunStoredProc(" SELECT TOP 1  mg.MALZEMEGIRIS_ADI, mg.MALZEMEGIRIS_BIRIMFIYAT, mg.MALZEMEGIRIS_PARABIRIMI " +
-                    "FROM TBL_LST_MALZEMEGIRIS mg " +
-                    "WHERE mg.MALZEMEGIRIS_MALZEMELERID = " + MALZEMELER_ID.ToString() +
-                    " ORDER BY MALZEMEGIRIS_TARIH DESC");
+                DataTable dt = clSqlTanim.RunStoredProc(
+                    "SELECT TOP 1 mg.MALZEMEGIRIS_ADI, mg.MALZEMEGIRIS_BIRIMFIYAT, mg.MALZEMEGIRIS_PARABIRIMI " +
+                    "FROM TBL_LST_MALZEMEGIRIS mg WHERE mg.MALZEMEGIRIS_MALZEMELERID=@malzemeId ORDER BY MALZEMEGIRIS_TARIH DESC",
+                    new[] { new SqlParameter("@malzemeId", MALZEMELER_ID) });
                 foreach (DataRow dr in dt.Rows)
                 {
                     textEditMalzemeCikisAdi.Text = dr["MALZEMEGIRIS_ADI"].ToString();
@@ -96,8 +90,8 @@ namespace MALZEME_TAKIP_SISTEMI
                 sb.Append("TBL_LST_MALZEMECIKIS.MALZEMECIKIS_TARIHI as 'Tarih', TBL_LST_MALZEMECIKIS.MALZEMECIKIS_SORGUBIRIMFIYAT as 'B.Fiyat', TBL_LST_MALZEMECIKIS.MALZEMECIKIS_SORGUTOPLAMFIYAT as 'T.Fiyat', ");
                 sb.Append("TBL_LST_MALZEMECIKIS.MALZEMECIKIS_PARABIRIMI as 'P.BİRİMİ', TBL_LST_MALZEMECIKIS.MALZEMECIKIS_DEPARTMANID,TBL_LST_MALZEMECIKIS.MALZEMECIKIS_TESLIMKULLANICIID ");
                 sb.Append("from TBL_LST_MALZEMECIKIS ");
-                sb.Append("where TBL_LST_MALZEMECIKIS.MALZEMECIKIS_ID =" + clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"]));
-                DataTable dt = clSqlTanim.RunStoredProc(sb.ToString());
+                sb.Append("where TBL_LST_MALZEMECIKIS.MALZEMECIKIS_ID=@id");
+                DataTable dt = clSqlTanim.RunStoredProc(sb.ToString(), new[] { new SqlParameter("@id", clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"])) });
                 if (dt != null && dt.Rows.Count > 0)
                 {
                     textEditMalzemeCikisAdi.Text = clGenelTanim.DBToString(dt.Rows[0]["MALZEME ADI"]);
@@ -131,9 +125,9 @@ namespace MALZEME_TAKIP_SISTEMI
             sb.Append("when TBL_LST_MALZEMECIKIS.MALZEMECIKIS_PARABIRIMI=6 then 'GBP' end 'P.BİRİMİ', ");
             sb.Append("TBL_LST_MALZEMECIKIS.MALZEMECIKIS_DEPARTMANID ");
             sb.Append("from TBL_LST_MALZEMECIKIS ");
-            sb.Append("where TBL_LST_MALZEMECIKIS.MALZEMECIKIS_MALZEMELERID =" + MALZEMELER_ID.ToString());
+            sb.Append("where TBL_LST_MALZEMECIKIS.MALZEMECIKIS_MALZEMELERID=@malzemeId");
             sb.Append(" order by MALZEMECIKIS_TARIHI desc ");
-            DataTable dt = clSqlTanim.RunStoredProc(sb.ToString());
+            DataTable dt = clSqlTanim.RunStoredProc(sb.ToString(), new[] { new SqlParameter("@malzemeId", MALZEMELER_ID) });
 
             gridControlCikisListe.DataSource = dt;
             this.SetGridFont(gridViewCikisListe, new Font("Tahoma", 10, FontStyle.Bold));
@@ -158,17 +152,16 @@ namespace MALZEME_TAKIP_SISTEMI
             {
                 if (DialogResult.Yes == XtraMessageBox.Show("Kayıtlar Silinsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
                 {
-                    StringBuilder sb = new StringBuilder(1024);
                     var item = gridViewCikisListe.GetFocusedDataRow();
                     if (item != null)
                     {
-                        sb.Append("DELETE FROM TBL_LST_MALZEMECIKIS ");
-                        sb.AppendFormat("WHERE MALZEMECIKIS_ID={0}", clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"]));
-                        clSqlTanim.RunStoredProc(sb.ToString());
+                        clSqlTanim.ExecuteNonQuery(
+                            "DELETE FROM TBL_LST_MALZEMECIKIS WHERE MALZEMECIKIS_ID=@id",
+                            new[] { new SqlParameter("@id", clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"])) });
                     }
                     XtraMessageBox.Show("Kayıt Silindi ...");
 
-                    frmMalzemeler.InitForm();
+                    (Application.OpenForms["frmMalzemeTanimlama"] as frmMalzemeTanimlama)?.InitForm();
                     InitFormListe();
 
                 }
@@ -215,11 +208,26 @@ namespace MALZEME_TAKIP_SISTEMI
                 return;
             }
 
-            //if (nMALZEMELER_STOKMIKTARI < Convert.ToInt32(textEditMalzemeCikisAdedi.Text))
-            //{
-            //    XtraMessageBox.Show("STOK MİKTARI YETERLİ DEĞİL !!!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //    return;
-            //}
+            DataTable dtStok = clSqlTanim.RunStoredProc(
+                "SELECT ISNULL(SUM(g.MALZEMEGIRIS_ADET),0) - ISNULL(SUM(c.MALZEMECIKIS_ADET),0) AS STOK " +
+                "FROM TBL_LST_MALZEMELER m " +
+                "LEFT JOIN TBL_LST_MALZEMEGIRIS g ON g.MALZEMEGIRIS_MALZEMELERID = m.MALZEME_ID " +
+                "LEFT JOIN TBL_LST_MALZEMECIKIS c ON c.MALZEMECIKIS_MALZEMELERID = m.MALZEME_ID " +
+                "WHERE m.MALZEME_ID = @malzemeId " +
+                "GROUP BY m.MALZEME_ID",
+                new[] { new SqlParameter("@malzemeId", MALZEMELER_ID) });
+
+            int mevcutStok = (dtStok != null && dtStok.Rows.Count > 0)
+                ? clGenelTanim.DBToInt32(dtStok.Rows[0]["STOK"])
+                : 0;
+
+            if (mevcutStok < Convert.ToInt32(textEditMalzemeCikisAdedi.Text))
+            {
+                XtraMessageBox.Show(
+                    $"STOK MİKTARI YETERLİ DEĞİL! Mevcut stok: {mevcutStok} adet.",
+                    "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             if (Convert.ToInt32(textEditMalzemeCikisAdedi.Text) < 1)
             {
@@ -281,80 +289,77 @@ namespace MALZEME_TAKIP_SISTEMI
         }
 
 
-        frmMalzemeTanimlama frmMalzemeler = ((frmMalzemeTanimlama)Application.OpenForms["frmMalzemeTanimlama"]);
 
         private void Kaydet()
         {
-            StringBuilder sbI = new StringBuilder(1024);
-            StringBuilder sbU = new StringBuilder(1024);
             var item = gridViewCikisListe.GetFocusedDataRow();
 
             try
             {
+                decimal birimFiyat = Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text.Replace(',', '.'), CultureInfo.InvariantCulture);
+                decimal toplamFiyat = Convert.ToDecimal(textEditMalzemeCikisToplamFiyat.Text.Replace(',', '.'), CultureInfo.InvariantCulture);
+                int adet = clGenelTanim.DBToInt32(string.IsNullOrEmpty(textEditMalzemeCikisAdedi.Text) ? "0" : textEditMalzemeCikisAdedi.Text);
+
+                decimal sorguBirimFiyat;
+                switch (comboBoxEditCikisParaBirimi.SelectedIndex)
+                {
+                    case 0: sorguBirimFiyat = malzemeEuroFiyat > 0 ? birimFiyat / malzemeEuroFiyat : birimFiyat; break;
+                    case 1: sorguBirimFiyat = birimFiyat; break;
+                    case 2: sorguBirimFiyat = birimFiyat * usdEuroOran; break;
+                    case 3: sorguBirimFiyat = birimFiyat * jpyEuroOran; break;
+                    case 4: sorguBirimFiyat = birimFiyat * chfEuroOran; break;
+                    case 5: sorguBirimFiyat = birimFiyat * gbpEuroOran; break;
+                    default: sorguBirimFiyat = birimFiyat; break;
+                }
+
                 if (yeniMalzemeCikis == true)
                 {
-                    sbI.Append("insert into TBL_LST_MALZEMECIKIS ( MALZEMECIKIS_MALZEMELERID, MALZEMECIKIS_ADI, MALZEMECIKIS_ADET, MALZEMECIKIS_DEPARTMANID, MALZEMECIKIS_TARIHI, MALZEMECIKIS_BIRIMFIYAT, MALZEMECIKIS_TOPLAMFIYAT, MALZEMECIKIS_PARABIRIMI, MALZEMECIKIS_SORGUBIRIMFIYAT, MALZEMECIKIS_SORGUTOPLAMFIYAT, MALZEMECIKIS_TESLIMKULLANICIID ) select");
-                    sbI.AppendFormat("  {0}", clGenelTanim.DBToInt32(string.IsNullOrEmpty(MALZEMELER_ID.ToString()) ? "0" : MALZEMELER_ID.ToString()));
-                    sbI.AppendFormat(" ,N{0}", clGenelTanim.tosqlstring(textEditMalzemeCikisAdi.Text.ToString(), 500, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(string.IsNullOrEmpty(textEditMalzemeCikisAdedi.Text.ToString()) ? "0" : textEditMalzemeCikisAdedi.Text.ToString()));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisYeri.SecilenDeger().Id.ToString()));
-                    sbI.AppendFormat(" ,{0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditMalzemeCikisTarih.DateTime).ToString("yyyy-MM-dd HH:mm") + "'");
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditMalzemeCikisBirimFiyat.Text.ToString().Replace(',', '.'), 10, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditMalzemeCikisToplamFiyat.Text.ToString().Replace(',', '.'), 10, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditCikisParaBirimi.SecilenDeger().Id.ToString()));
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 0)
+                    string insertSql = "INSERT INTO TBL_LST_MALZEMECIKIS " +
+                        "(MALZEMECIKIS_MALZEMELERID, MALZEMECIKIS_ADI, MALZEMECIKIS_ADET, MALZEMECIKIS_DEPARTMANID, " +
+                        "MALZEMECIKIS_TARIHI, MALZEMECIKIS_BIRIMFIYAT, MALZEMECIKIS_TOPLAMFIYAT, MALZEMECIKIS_PARABIRIMI, " +
+                        "MALZEMECIKIS_SORGUBIRIMFIYAT, MALZEMECIKIS_SORGUTOPLAMFIYAT, MALZEMECIKIS_TESLIMKULLANICIID) " +
+                        "VALUES (@malzemeId, @cikisAdi, @adet, @departmanId, @tarih, @birimFiyat, @toplamFiyat, " +
+                        "@paraBirimi, @sorguBirimFiyat, @sorguToplamFiyat, @teslimKullanici)";
+                    var insertParams = new SqlParameter[]
                     {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) / malzemeEuroFiyat).ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) / malzemeEuroFiyat).ToString().Replace(',', '.'), 10, true));
-                    }
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 1)
-                    {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditMalzemeCikisBirimFiyat.Text.ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditMalzemeCikisBirimFiyat.Text.ToString().Replace(',', '.'), 10, true));
-                    }
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 2)
-                    {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * usdEuroOran).ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * usdEuroOran).ToString().Replace(',', '.'), 10, true));
-                    }
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 3)
-                    {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * jpyEuroOran).ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * jpyEuroOran).ToString().Replace(',', '.'), 10, true));
-                    }
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 4)
-                    {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * chfEuroOran).ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * chfEuroOran).ToString().Replace(',', '.'), 10, true));
-                    }
-                    if (comboBoxEditCikisParaBirimi.SelectedIndex == 5)
-                    {
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * gbpEuroOran).ToString().Replace(',', '.'), 10, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text) * gbpEuroOran).ToString().Replace(',', '.'), 10, true));
-                    }
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisKullanici.SecilenDeger().Id.ToString()));
-
-                    clSqlTanim.RunStoredProc(sbI.ToString());
-
+                        new SqlParameter("@malzemeId", MALZEMELER_ID),
+                        new SqlParameter("@cikisAdi", textEditMalzemeCikisAdi.Text),
+                        new SqlParameter("@adet", adet),
+                        new SqlParameter("@departmanId", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisYeri.SecilenDeger().Id.ToString())),
+                        new SqlParameter("@tarih", Convert.ToDateTime(dateEditMalzemeCikisTarih.DateTime).ToString("yyyy-MM-dd HH:mm")),
+                        new SqlParameter("@birimFiyat", birimFiyat.ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@toplamFiyat", toplamFiyat.ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@paraBirimi", clGenelTanim.DBToInt32(comboBoxEditCikisParaBirimi.SecilenDeger().Id.ToString())),
+                        new SqlParameter("@sorguBirimFiyat", sorguBirimFiyat.ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@sorguToplamFiyat", (sorguBirimFiyat * adet).ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@teslimKullanici", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisKullanici.SecilenDeger().Id.ToString())),
+                    };
+                    clSqlTanim.ExecuteNonQuery(insertSql, insertParams);
                     XtraMessageBox.Show("Çıkış Eklendi...", "Bilgi...", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    sbU.AppendFormat("update TBL_LST_MALZEMECIKIS set ");
-                    sbU.AppendFormat("  MALZEMECIKIS_ADET={0}", clGenelTanim.DBToInt32(string.IsNullOrEmpty(textEditMalzemeCikisAdedi.Text.ToString()) ? "0" : textEditMalzemeCikisAdedi.Text.ToString()));
-                    sbU.AppendFormat(" ,MALZEMECIKIS_TARIHI={0}", Convert.ToDateTime(DateTime.Now.ToString()).Equals(clGenelTanim.dateNull) ? "NULL" : "'" + Convert.ToDateTime(dateEditMalzemeCikisTarih.DateTime).ToString("yyyy-MM-dd HH:mm") + "'");
-                    sbU.AppendFormat(" ,MALZEMECIKIS_BIRIMFIYAT={0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisBirimFiyat.Text)).ToString().Replace(',', '.'), 10, true));
-                    sbU.AppendFormat(" ,MALZEMECIKIS_TOPLAMFIYAT={0}", clGenelTanim.tosqlstring((Convert.ToDecimal(textEditMalzemeCikisToplamFiyat.Text)).ToString().Replace(',', '.'), 10, true));
-                    sbU.AppendFormat(" ,MALZEMECIKIS_PARABIRIMI={0}", clGenelTanim.DBToInt32(comboBoxEditCikisParaBirimi.SecilenDeger().Id.ToString()));
-                    sbU.AppendFormat(" ,MALZEMECIKIS_DEPARTMANID={0}", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisYeri.SecilenDeger().Id.ToString()));
-                    sbU.AppendFormat(" ,MALZEMECIKIS_TESLIMKULLANICIID={0}", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisKullanici.SecilenDeger().Id.ToString()));
-                    sbU.AppendFormat("  where MALZEMECIKIS_ID={0}", clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"]));
-                    clSqlTanim.RunStoredProc(sbU.ToString());
-
-                    XtraMessageBox.Show("Çıkış GÜncellendi...", "Bilgi...", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    string updateSql = "UPDATE TBL_LST_MALZEMECIKIS SET " +
+                        "MALZEMECIKIS_ADET=@adet, MALZEMECIKIS_TARIHI=@tarih, MALZEMECIKIS_BIRIMFIYAT=@birimFiyat, " +
+                        "MALZEMECIKIS_TOPLAMFIYAT=@toplamFiyat, MALZEMECIKIS_PARABIRIMI=@paraBirimi, " +
+                        "MALZEMECIKIS_DEPARTMANID=@departmanId, MALZEMECIKIS_TESLIMKULLANICIID=@teslimKullanici " +
+                        "WHERE MALZEMECIKIS_ID=@id";
+                    var updateParams = new SqlParameter[]
+                    {
+                        new SqlParameter("@adet", adet),
+                        new SqlParameter("@tarih", Convert.ToDateTime(dateEditMalzemeCikisTarih.DateTime).ToString("yyyy-MM-dd HH:mm")),
+                        new SqlParameter("@birimFiyat", birimFiyat.ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@toplamFiyat", toplamFiyat.ToString("0.####", CultureInfo.InvariantCulture)),
+                        new SqlParameter("@paraBirimi", clGenelTanim.DBToInt32(comboBoxEditCikisParaBirimi.SecilenDeger().Id.ToString())),
+                        new SqlParameter("@departmanId", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisYeri.SecilenDeger().Id.ToString())),
+                        new SqlParameter("@teslimKullanici", clGenelTanim.DBToInt32(comboBoxEditMalzemeCikisKullanici.SecilenDeger().Id.ToString())),
+                        new SqlParameter("@id", clGenelTanim.DBToInt32(item["MALZEMECIKIS_ID"])),
+                    };
+                    clSqlTanim.ExecuteNonQuery(updateSql, updateParams);
+                    XtraMessageBox.Show("Çıkış Güncellendi...", "Bilgi...", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
 
-                frmMalzemeler.InitForm();
+                (Application.OpenForms["frmMalzemeTanimlama"] as frmMalzemeTanimlama)?.InitForm();
                 InitFormListe();
             }
             catch (Exception ex) { XtraMessageBox.Show(ex.Message, "BİLGİ ...", MessageBoxButtons.OK, MessageBoxIcon.Error); }

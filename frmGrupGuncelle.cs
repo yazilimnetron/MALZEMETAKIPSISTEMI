@@ -1,14 +1,8 @@
-﻿using DevExpress.XtraEditors;
-using MALZEME_TAKIP_SISTEMI;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using DevExpress.XtraEditors;
+using MALZEMETAKIPSISTEMI;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Data.SqlClient;
 using System.Windows.Forms;
 
 namespace MALZEMETAKIPSISTEMI
@@ -43,24 +37,20 @@ namespace MALZEMETAKIPSISTEMI
 
         private void Kaydet()
         {
-            StringBuilder sbU = new StringBuilder(512);
-
-            frmMalzemeTanimlama frmMalzemeTanimlama = ((frmMalzemeTanimlama)Application.OpenForms["frmMalzemeTanimlama"]);
+            var frmMalzemeTanimlama = Application.OpenForms["frmMalzemeTanimlama"] as frmMalzemeTanimlama;
+            if (frmMalzemeTanimlama == null) return;
 
             try
             {
+                int grupId = clGenelTanim.DBToInt32(comboBoxEditGrupAdi.SecilenDeger().Id.ToString());
                 for (int i = 0; i < frmMalzemeTanimlama.gridViewMalzemeListesi.DataRowCount; i++)
                 {
-                    if (frmMalzemeTanimlama.gridViewMalzemeListesi.IsRowSelected(i))
-                    {
-                        sbU.AppendFormat("update TBL_LST_MALZEMELER set ");
-                        sbU.AppendFormat(" MALZEME_GRUBU={0}", clGenelTanim.DBToInt32(comboBoxEditGrupAdi.SecilenDeger().Id.ToString())); 
-                        sbU.AppendFormat(" where MALZEME_ID={0}", clGenelTanim.DBToInt32(string.IsNullOrEmpty(frmMalzemeTanimlama.gridViewMalzemeListesi.GetRowCellValue(i, frmMalzemeTanimlama.gridViewMalzemeListesi.Columns[0]).ToString()) ? "0" : frmMalzemeTanimlama.gridViewMalzemeListesi.GetRowCellValue(i, frmMalzemeTanimlama.gridViewMalzemeListesi.Columns[0]).ToString()));
-                        sbU.Append(Environment.NewLine);
-                    }
+                    if (!frmMalzemeTanimlama.gridViewMalzemeListesi.IsRowSelected(i)) continue;
+                    int malzemeId = clGenelTanim.DBToInt32(string.IsNullOrEmpty(frmMalzemeTanimlama.gridViewMalzemeListesi.GetRowCellValue(i, frmMalzemeTanimlama.gridViewMalzemeListesi.Columns[0]).ToString()) ? "0" : frmMalzemeTanimlama.gridViewMalzemeListesi.GetRowCellValue(i, frmMalzemeTanimlama.gridViewMalzemeListesi.Columns[0]).ToString());
+                    clSqlTanim.ExecuteNonQuery(
+                        "UPDATE TBL_LST_MALZEMELER SET MALZEME_GRUBU=@grup WHERE MALZEME_ID=@id",
+                        new[] { new SqlParameter("@grup", grupId), new SqlParameter("@id", malzemeId) });
                 }
-
-                clSqlTanim.RunStoredProc(sbU.ToString());
 
                 XtraMessageBox.Show("Malzeme Grup Güncellendi...", "Bilgi...", MessageBoxButtons.OK, MessageBoxIcon.Information);
 

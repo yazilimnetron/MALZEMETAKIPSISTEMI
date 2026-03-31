@@ -1,36 +1,21 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeNotlar : Form
+    public partial class frmMalzemeNotlar : FrmBase
     {
-        //private int currentNotlarID = -1;
-        //private DataSet dsNotlar = null;
-        //private bool yeniNotlar = false;
-        //private int Not_ID = 0;
         private int MALZEMENOT_ID = 0;
         public frmMalzemeNotlar()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void simpleButtonKaydet_Click(object sender, EventArgs e)
@@ -38,24 +23,6 @@ namespace MALZEMETAKIPSISTEMI
             frmMalzemeNotlarYeni u = new frmMalzemeNotlarYeni();
             u.yeniNot = true;
             u.ShowDialog();
-            //StringBuilder sb = new StringBuilder(5012);
-            //if (DialogResult.Yes == XtraMessageBox.Show("Değişiklikler Kaydedilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
-            //{
-            //    try
-            //    {
-            //        sb.Append("exec NotlarEkleGuncelle ");
-            //        sb.Append("@NOT_AD=" + clGenelTanim.tosqlstring(richEditControlNotlar.Text.ToString(), 50000, true));
-            //        clSqlTanim.RunStoredProc(sb.ToString());
-
-            //        if (sb.Length > 50)
-            //        {
-            //            InitForm();
-            //            XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            //        }
-            //    }
-
-            //    catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
-            //}
         }
 
         public void InitForm()
@@ -93,13 +60,12 @@ namespace MALZEMETAKIPSISTEMI
         {
             if (DialogResult.Yes == XtraMessageBox.Show("Kayıt Silinsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                StringBuilder sb = new StringBuilder(1024);
                 var item = gridViewNotListe.GetFocusedDataRow();
                 if (item != null)
                 {
-                    sb.Append("DELETE FROM TBL_LST_MALZEMENOTLAR ");
-                    sb.AppendFormat("WHERE NOT_ID={0}", clGenelTanim.DBToInt32(item["NOT_ID"]));
-                    clSqlTanim.RunStoredProc(sb.ToString());
+                    clSqlTanim.ExecuteNonQuery(
+                        "DELETE FROM TBL_LST_MALZEMENOTLAR WHERE NOT_ID=@id",
+                        new[] { new SqlParameter("@id", clGenelTanim.DBToInt32(item["NOT_ID"])) });
                     InitForm();
                     XtraMessageBox.Show("Kayıt Silindi ...");
                 }
@@ -109,11 +75,9 @@ namespace MALZEMETAKIPSISTEMI
 
         private void MALZEMENOTID(int MALZEMENOT_ID)
         {
-            StringBuilder sb = new StringBuilder(512);
-            sb.Append("Select NOT_DETAY from TBL_LST_MALZEMENOTLAR ");
-            sb.AppendFormat("Where NOT_ID={0}", MALZEMENOT_ID.ToString());
-
-            DataTable dt = clSqlTanim.RunStoredProc(sb.ToString());
+            DataTable dt = clSqlTanim.RunStoredProc(
+                "SELECT NOT_DETAY FROM TBL_LST_MALZEMENOTLAR WHERE NOT_ID=@id",
+                new[] { new SqlParameter("@id", MALZEMENOT_ID) });
             if (dt != null && dt.Rows.Count > 0)
             {
                 richEditControlNotlar.Text = clGenelTanim.DBToString(dt.Rows[0]["NOT_DETAY"]);

@@ -1,4 +1,4 @@
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     partial class frmMalzemeKurBilgileri
     {
@@ -320,7 +320,7 @@ namespace MALZEME_TAKIP_SISTEMI
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(87, 16);
             this.label9.TabIndex = 49;
-            this.label9.Text = "Ýsviçre Frangý";
+            this.label9.Text = "Ä°sviÃ§re FrangÄ±";
             // 
             // label10
             // 
@@ -392,7 +392,7 @@ namespace MALZEME_TAKIP_SISTEMI
             this.Name = "frmMalzemeKurBilgileri";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Döviz Kurlarý";
+            this.Text = "DÃ¶viz KurlarÄ±";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmkur_FormClosing);
             this.Load += new System.EventHandler(this.frmkur_Load);
             this.pnlKur.ResumeLayout(false);

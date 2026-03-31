@@ -1,8 +1,8 @@
-﻿using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmMalzemeSiparisKullanici : Form
     {
@@ -13,7 +13,8 @@ namespace MALZEME_TAKIP_SISTEMI
 
         private void simpleButtonTamam_Click(object sender, EventArgs e)
         {
-            frmMalzemeSiparisKarsilama f = ((frmMalzemeSiparisKarsilama)Application.OpenForms["frmMalzemeSiparisKarsilama"]);
+            var f = Application.OpenForms["frmMalzemeSiparisKarsilama"] as frmMalzemeSiparisKarsilama;
+            if (f == null) return;
             f.malzemesiparisKullanici = Convert.ToInt32(comboBoxEditKullanici.SecilenDeger().Id.ToString());
             //this.Hide();
             //f.ShowDialog();

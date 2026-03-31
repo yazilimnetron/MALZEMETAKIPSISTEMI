@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     static class Program
     {
-        public static string versionCode = "2.5.3";
+        public static string versionCode = "3.0";
         /// <summary>
         /// The main entry point for the application.
         /// </summary>

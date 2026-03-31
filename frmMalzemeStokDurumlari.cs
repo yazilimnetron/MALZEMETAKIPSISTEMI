@@ -1,26 +1,19 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeStokDurumlari : Form
+    public partial class frmMalzemeStokDurumlari : FrmBase
     {
         public frmMalzemeStokDurumlari()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void frmMalzemeStokDurumlari_Load(object sender, EventArgs e)

@@ -1,21 +1,18 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI;
+using MALZEMETAKIPSISTEMI;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 
 namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmGrupEkle : Form
+    public partial class frmGrupEkle : FrmBase
     {
         private int currentGrupID = -1;
         private DataSet dsGrup = null;
@@ -25,14 +22,6 @@ namespace MALZEMETAKIPSISTEMI
         {
             InitializeComponent();
         }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
-        }
-
 
         private void KontrolVeriIliskileriniAyarla()
         {
@@ -81,9 +70,10 @@ namespace MALZEMETAKIPSISTEMI
             sb.Append("SELECT g.MALZEMEGRUP_ID, g.MALZEMEGRUP_ADI AS 'GRUP ADI', ag.MALZEMEANAGRUP_ID, g.MALZEMEGRUP_DURUM AS 'KULLANILIYOR' ");
             sb.Append("FROM TBL_LST_MALZEMEGRUPLAR g (NOLOCK) ");
             sb.Append("JOIN TBL_LST_MALZEMEANAGRUPLAR ag on ag.MALZEMEANAGRUP_ID=g.MALZEMEANAGRUP_ID ");
-            sb.AppendFormat("WHERE g.MALZEMEGRUP_ID={0}", grupId.ToString());
+            sb.Append("WHERE g.MALZEMEGRUP_ID=@grupId");
 
-            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "GD");
+            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "GD",
+                new[] { new System.Data.SqlClient.SqlParameter("@grupId", grupId) });
             this.dsGrup = ds;
 
             grupBilgileriniDoldur(ds);
@@ -141,49 +131,38 @@ namespace MALZEMETAKIPSISTEMI
             DataTable dtGrup = this.yeniGrup ? null : dsGrup.Tables[0];
             DataRow rowGrup = dtGrup == null ? null : dtGrup.Rows[0];
 
-            StringBuilder sbI = new StringBuilder(512);
-            StringBuilder sbU = new StringBuilder(512);
-
             if (DialogResult.Yes == XtraMessageBox.Show("Değişiklikler Kaydedilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
                     if (rowGrup == null)
                     {
-                        sbI.Append("insert into TBL_LST_MALZEMEGRUPLAR ( MALZEMEGRUP_ADI, MALZEMEANAGRUP_ID, MALZEMEGRUP_DURUM ) select");
-                        sbI.AppendFormat(" {0}", clGenelTanim.tosqlstring(textEditGrupAdi.Text.ToString(), 50, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditAnaGrupEkle.SecilenDeger().Id.ToString()));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditGrupDurum.Checked));
-                        string insertQuery = sbI.ToString() + "\r\nSELECT @@IDENTITY";
-                        DataTable dt = clSqlTanim.RunStoredProc(insertQuery);
-                        if (dt != null && dt.Rows.Count > 0)
-                        {
-                            this.currentGrupID = clGenelTanim.DBToInt32(dt.Rows[0][0]);
-                        }
-                        else
-                        {
-                            this.currentGrupID = -1;
-                        }
+                        DataTable dt = clSqlTanim.RunStoredProc(
+                            "INSERT INTO TBL_LST_MALZEMEGRUPLAR (MALZEMEGRUP_ADI, MALZEMEANAGRUP_ID, MALZEMEGRUP_DURUM) VALUES (@adi, @anaGrup, @durum); SELECT SCOPE_IDENTITY()",
+                            new[] {
+                                new System.Data.SqlClient.SqlParameter("@adi",    textEditGrupAdi.Text),
+                                new System.Data.SqlClient.SqlParameter("@anaGrup", clGenelTanim.DBToInt32(comboBoxEditAnaGrupEkle.SecilenDeger().Id.ToString())),
+                                new System.Data.SqlClient.SqlParameter("@durum",  clGenelTanim.DBToInt32(checkEditGrupDurum.Checked))
+                            });
+                        this.currentGrupID = dt != null && dt.Rows.Count > 0 ? clGenelTanim.DBToInt32(dt.Rows[0][0]) : -1;
                     }
                     else
                     {
-                        sbU.Append("update TBL_LST_MALZEMEGRUPLAR set ");
-                        sbU.AppendFormat("  MALZEMEGRUP_ADI={0}", clGenelTanim.tosqlstring(textEditGrupAdi.Text.ToString(), 50, true));
-                        sbU.AppendFormat(" ,MALZEMEGRUP_DURUM={0}", clGenelTanim.DBToInt32(checkEditGrupDurum.Checked));
-                        sbU.AppendFormat(" ,MALZEMEANAGRUP_ID={0}", clGenelTanim.DBToInt32(comboBoxEditAnaGrupEkle.SecilenDeger().Id.ToString()));
-                        sbU.AppendFormat(" where MALZEMEGRUP_ID={0}", clGenelTanim.DBToInt32(textEditGrupNo.Text.ToString()));
-                        clSqlTanim.RunStoredProc(sbU.ToString());
+                        clSqlTanim.ExecuteNonQuery(
+                            "UPDATE TBL_LST_MALZEMEGRUPLAR SET MALZEMEGRUP_ADI=@adi, MALZEMEGRUP_DURUM=@durum, MALZEMEANAGRUP_ID=@anaGrup WHERE MALZEMEGRUP_ID=@id",
+                            new[] {
+                                new System.Data.SqlClient.SqlParameter("@adi",    textEditGrupAdi.Text),
+                                new System.Data.SqlClient.SqlParameter("@durum",  clGenelTanim.DBToInt32(checkEditGrupDurum.Checked)),
+                                new System.Data.SqlClient.SqlParameter("@anaGrup", clGenelTanim.DBToInt32(comboBoxEditAnaGrupEkle.SecilenDeger().Id.ToString())),
+                                new System.Data.SqlClient.SqlParameter("@id",     clGenelTanim.DBToInt32(textEditGrupNo.Text))
+                            });
                     }
 
-                    if (sbI.Length > 50 || sbU.Length > 50)
-                    {
-                        InitForm();
-                        XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        this.simpleButtonKaydet.Enabled = false;
-                        this.textEditGrupAdi.Enabled = false;
-                        grupSec(currentGrupID);
-
-                    }
+                    InitForm();
+                    XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.simpleButtonKaydet.Enabled = false;
+                    this.textEditGrupAdi.Enabled = false;
+                    grupSec(currentGrupID);
                 }
 
                 catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
@@ -211,10 +190,9 @@ namespace MALZEMETAKIPSISTEMI
 
             if (DialogResult.Yes == XtraMessageBox.Show(title, "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                StringBuilder sbD = new StringBuilder(300);
-                sbD.AppendFormat("delete from TBL_LST_MALZEMEGRUPLAR where MALZEMEGRUP_ID={0}", this.currentGrupID);
-
-                clSqlTanim.ExecuteNonQuery(sbD.ToString());
+                clSqlTanim.ExecuteNonQuery(
+                    "DELETE FROM TBL_LST_MALZEMEGRUPLAR WHERE MALZEMEGRUP_ID=@id",
+                    new[] { new System.Data.SqlClient.SqlParameter("@id", this.currentGrupID) });
 
                 InitForm();
 
@@ -229,9 +207,6 @@ namespace MALZEMETAKIPSISTEMI
             if (DialogResult.Yes == XtraMessageBox.Show("Çıkış yapmak istediğiniden eminmisiniz?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 this.Close();
-
-                //frmGirisEkran frmGirisE = ((frmGirisEkran)Application.OpenForms["frmGirisEkran"]);
-                //frmGirisE.pictureEdit1.BringToFront();
             }
         }
 

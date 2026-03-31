@@ -1,4 +1,4 @@
-﻿namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     partial class frmMalzemeTalepIhtiyac
     {
@@ -49,7 +49,7 @@
             this.contextMenuStripMalzemeTalep = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.malzemeTalepToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gridViewMalzemeTalepler = new DevExpress.XtraGrid.Views.Grid.GridView();
-            this.layoutControlGroupMalzemeOtomatikTalep = new DevExpress.XtraLayout.LayoutControlGroup();
+            this.layoutControlGroupMalzemeTalepIhtiyac = new DevExpress.XtraLayout.LayoutControlGroup();
             this.layoutControlItemMalzemeTalepler = new DevExpress.XtraLayout.LayoutControlItem();
             this.layoutControlItemDurum = new DevExpress.XtraLayout.LayoutControlItem();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlMalzemeOtomatikTalep)).BeginInit();
@@ -59,7 +59,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.gridControlMalzemeTalepler)).BeginInit();
             this.contextMenuStripMalzemeTalep.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gridViewMalzemeTalepler)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.layoutControlGroupMalzemeOtomatikTalep)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.layoutControlGroupMalzemeTalepIhtiyac)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlItemMalzemeTalepler)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlItemDurum)).BeginInit();
             this.SuspendLayout();
@@ -71,7 +71,7 @@
             this.layoutControlMalzemeOtomatikTalep.Dock = System.Windows.Forms.DockStyle.Fill;
             this.layoutControlMalzemeOtomatikTalep.Location = new System.Drawing.Point(0, 50);
             this.layoutControlMalzemeOtomatikTalep.Name = "layoutControlMalzemeOtomatikTalep";
-            this.layoutControlMalzemeOtomatikTalep.Root = this.layoutControlGroupMalzemeOtomatikTalep;
+            this.layoutControlMalzemeOtomatikTalep.Root = this.layoutControlGroupMalzemeTalepIhtiyac;
             this.layoutControlMalzemeOtomatikTalep.Size = new System.Drawing.Size(782, 683);
             this.layoutControlMalzemeOtomatikTalep.TabIndex = 0;
             // 
@@ -281,17 +281,17 @@
             this.gridViewMalzemeTalepler.OptionsView.ShowFooter = true;
             this.gridViewMalzemeTalepler.OptionsView.ShowGroupPanel = false;
             // 
-            // layoutControlGroupMalzemeOtomatikTalep
+            // layoutControlGroupMalzemeTalepIhtiyac
             // 
-            this.layoutControlGroupMalzemeOtomatikTalep.CustomizationFormText = "layoutControlGroupMalzemeOtomatikTalep";
-            this.layoutControlGroupMalzemeOtomatikTalep.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;
-            this.layoutControlGroupMalzemeOtomatikTalep.GroupBordersVisible = false;
-            this.layoutControlGroupMalzemeOtomatikTalep.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] {
+            this.layoutControlGroupMalzemeTalepIhtiyac.CustomizationFormText = "layoutControlGroupMalzemeOtomatikTalep";
+            this.layoutControlGroupMalzemeTalepIhtiyac.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;
+            this.layoutControlGroupMalzemeTalepIhtiyac.GroupBordersVisible = false;
+            this.layoutControlGroupMalzemeTalepIhtiyac.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] {
             this.layoutControlItemMalzemeTalepler,
             this.layoutControlItemDurum});
-            this.layoutControlGroupMalzemeOtomatikTalep.Name = "layoutControlGroupMalzemeOtomatikTalep";
-            this.layoutControlGroupMalzemeOtomatikTalep.Size = new System.Drawing.Size(782, 683);
-            this.layoutControlGroupMalzemeOtomatikTalep.TextVisible = false;
+            this.layoutControlGroupMalzemeTalepIhtiyac.Name = "layoutControlGroupMalzemeTalepIhtiyac";
+            this.layoutControlGroupMalzemeTalepIhtiyac.Size = new System.Drawing.Size(782, 683);
+            this.layoutControlGroupMalzemeTalepIhtiyac.TextVisible = false;
             // 
             // layoutControlItemMalzemeTalepler
             // 
@@ -334,7 +334,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Malzeme Talep İhtiyaç";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
-            this.Load += new System.EventHandler(this.frmMalzemeOtomatikTalep_Load);
+            this.Load += new System.EventHandler(this.frmMalzemeTalepIhtiyac_Load);
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlMalzemeOtomatikTalep)).EndInit();
             this.layoutControlMalzemeOtomatikTalep.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.radioGroupDurum.Properties)).EndInit();
@@ -342,7 +342,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.gridControlMalzemeTalepler)).EndInit();
             this.contextMenuStripMalzemeTalep.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gridViewMalzemeTalepler)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.layoutControlGroupMalzemeOtomatikTalep)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.layoutControlGroupMalzemeTalepIhtiyac)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlItemMalzemeTalepler)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlItemDurum)).EndInit();
             this.ResumeLayout(false);
@@ -353,7 +353,7 @@
         #endregion
 
         private DevExpress.XtraLayout.LayoutControl layoutControlMalzemeOtomatikTalep;
-        private DevExpress.XtraLayout.LayoutControlGroup layoutControlGroupMalzemeOtomatikTalep;
+        private DevExpress.XtraLayout.LayoutControlGroup layoutControlGroupMalzemeTalepIhtiyac;
         private DevExpress.XtraBars.BarManager barManagerMalzemeTalepleri;
         private DevExpress.XtraBars.Bar bar2;
         private DevExpress.XtraBars.BarStaticItem barStaticItemMalzemeTalepleri;

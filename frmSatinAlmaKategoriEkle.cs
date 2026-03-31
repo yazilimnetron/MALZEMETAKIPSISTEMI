@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,12 +10,13 @@ using System.Windows.Forms;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
+using System.Data.SqlClient;
 
 namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmSatinAlmaKategoriEkle : Form
+    public partial class frmSatinAlmaKategoriEkle : FrmBase
     {
         private int currentKategoriID = -1;
         private DataSet dsKategori = null;
@@ -24,13 +25,6 @@ namespace MALZEMETAKIPSISTEMI
         public frmSatinAlmaKategoriEkle()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void KontrolVeriIliskileriniAyarla()
@@ -81,9 +75,10 @@ namespace MALZEMETAKIPSISTEMI
             sb.Append("SELECT k.MALZEMEKATEGORI_ID, k.MALZEMEKATEGORI_KODU, k.MALZEMEKATEGORI_ADI AS 'KATEGORİ ADI', k.MALZEMEKATEGORIGRUP_ID, k.MALZEMEKATEGORI_DURUM AS 'KULLANILIYOR' ");
             sb.Append("FROM TBL_LST_MALZEMEKATEGORILER k (NOLOCK) ");
             sb.Append("LEFT JOIN TBL_LST_MALZEMEGRUPLAR g on k.MALZEMEKATEGORIGRUP_ID=g.MALZEMEGRUP_ID ");
-            sb.AppendFormat("WHERE k.MALZEMEKATEGORI_ID={0}", grupId.ToString());
+            sb.Append("WHERE k.MALZEMEKATEGORI_ID=@katId");
 
-            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "KD");
+            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "KD",
+                new[] { new SqlParameter("@katId", grupId) });
             this.dsKategori = ds;
 
             kategoriBilgileriniDoldur(ds);
@@ -142,52 +137,39 @@ namespace MALZEMETAKIPSISTEMI
             DataTable dtKategori = this.yeniKategori ? null : dsKategori.Tables[0];
             DataRow rowKategori = dtKategori == null ? null : dtKategori.Rows[0];
 
-            StringBuilder sbI = new StringBuilder(512);
-            StringBuilder sbU = new StringBuilder(512);
-
             if (DialogResult.Yes == XtraMessageBox.Show("Değişiklikler Kaydedilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
                     if (rowKategori == null)
                     {
-                        sbI.Append("insert into TBL_LST_MALZEMEKATEGORILER ( MALZEMEKATEGORI_KODU, MALZEMEKATEGORI_ADI, MALZEMEKATEGORI_DURUM ) select");
-                        sbI.AppendFormat(" {0}", clGenelTanim.tosqlstring(textEditKategoriKodu.Text.ToString(), 5, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditKategoriAdi.Text.ToString(), 100, true));
-                        //sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditKategoriGrupEkle.SecilenDeger().Id.ToString()));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditKategoriDurum.Checked));
-                        string insertQuery = sbI.ToString() + "\r\nSELECT @@IDENTITY";
-                        DataTable dt = clSqlTanim.RunStoredProc(insertQuery);
-                        if (dt != null && dt.Rows.Count > 0)
-                        {
-                            this.currentKategoriID = clGenelTanim.DBToInt32(dt.Rows[0][0]);
-                        }
-                        else
-                        {
-                            this.currentKategoriID = -1;
-                        }
+                        DataTable dt = clSqlTanim.RunStoredProc(
+                            "INSERT INTO TBL_LST_MALZEMEKATEGORILER (MALZEMEKATEGORI_KODU, MALZEMEKATEGORI_ADI, MALZEMEKATEGORI_DURUM) VALUES (@kod, @adi, @durum); SELECT SCOPE_IDENTITY()",
+                            new[] {
+                                new SqlParameter("@kod",   textEditKategoriKodu.Text),
+                                new SqlParameter("@adi",   textEditKategoriAdi.Text),
+                                new SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditKategoriDurum.Checked))
+                            });
+                        this.currentKategoriID = dt?.Rows.Count > 0 ? clGenelTanim.DBToInt32(dt.Rows[0][0]) : -1;
                     }
                     else
                     {
-                        sbU.Append("update TBL_LST_MALZEMEKATEGORILER set ");
-                        sbU.AppendFormat("  MALZEMEKATEGORI_KODU={0}", clGenelTanim.tosqlstring(textEditKategoriKodu.Text.ToString(), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEKATEGORI_ADI={0}", clGenelTanim.tosqlstring(textEditKategoriAdi.Text.ToString(), 100, true));
-                        sbU.AppendFormat(" ,MALZEMEKATEGORI_DURUM={0}", clGenelTanim.DBToInt32(checkEditKategoriDurum.Checked));
-                        //sbU.AppendFormat(" ,MALZEMEKATEGORIGRUP_ID={0}", clGenelTanim.DBToInt32(comboBoxEditKategoriGrupEkle.SecilenDeger().Id.ToString()));
-                        sbU.AppendFormat(" where MALZEMEKATEGORI_ID={0}", clGenelTanim.DBToInt32(textEditKategoriNo.Text.ToString()));
-                        clSqlTanim.RunStoredProc(sbU.ToString());
+                        clSqlTanim.ExecuteNonQuery(
+                            "UPDATE TBL_LST_MALZEMEKATEGORILER SET MALZEMEKATEGORI_KODU=@kod, MALZEMEKATEGORI_ADI=@adi, MALZEMEKATEGORI_DURUM=@durum WHERE MALZEMEKATEGORI_ID=@id",
+                            new[] {
+                                new SqlParameter("@kod",   textEditKategoriKodu.Text),
+                                new SqlParameter("@adi",   textEditKategoriAdi.Text),
+                                new SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditKategoriDurum.Checked)),
+                                new SqlParameter("@id",    clGenelTanim.DBToInt32(textEditKategoriNo.Text))
+                            });
                     }
 
-                    if (sbI.Length > 50 || sbU.Length > 50)
-                    {
-                        InitForm();
-                        XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        this.simpleButtonKaydet.Enabled = false;
-                        this.textEditKategoriAdi.Enabled = false;
-                        textEditKategoriKodu.Enabled = false;
-                        kategoriSec(currentKategoriID);
-
-                    }
+                    InitForm();
+                    XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.simpleButtonKaydet.Enabled = false;
+                    this.textEditKategoriAdi.Enabled = false;
+                    textEditKategoriKodu.Enabled = false;
+                    kategoriSec(currentKategoriID);
                 }
 
                 catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
@@ -215,10 +197,9 @@ namespace MALZEMETAKIPSISTEMI
 
             if (DialogResult.Yes == XtraMessageBox.Show(title, "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                StringBuilder sbD = new StringBuilder(300);
-                sbD.AppendFormat("delete from TBL_LST_MALZEMEKATEGORILER where MALZEMEKATEGORI_ID={0}", this.currentKategoriID);
-
-                clSqlTanim.ExecuteNonQuery(sbD.ToString());
+                clSqlTanim.ExecuteNonQuery(
+                    "DELETE FROM TBL_LST_MALZEMEKATEGORILER WHERE MALZEMEKATEGORI_ID=@id",
+                    new[] { new SqlParameter("@id", this.currentKategoriID) });
 
                 InitForm();
 

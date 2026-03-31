@@ -1,36 +1,24 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Columns;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmMalzemeSiparisIstatistikleri : Form
+    public partial class frmMalzemeSiparisIstatistikleri : FrmBase
     {
         public frmMalzemeSiparisIstatistikleri()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
-        }
-
-        private void SetContainsFilter(GridView view)
-        {
-            foreach (GridColumn col in view.Columns)
-                col.OptionsFilter.AutoFilterCondition = AutoFilterCondition.Contains;
         }
 
         private void barButtonItemKapat_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -82,11 +70,13 @@ namespace MALZEME_TAKIP_SISTEMI
             sb.Append("JOIN TBL_LST_MALZEMEDEPARTMANLAR e (nolock) on e.MALZEME_DEPARTMANID=c.MALZEMECIKIS_DEPARTMANID ");
             sb.Append("left JOIN TBL_LST_MALZEMEKULLANICILAR f (nolock) on f.MALZEMEKULLANICI_ID=a.MALZEMEDEPOISTEM_KULLANICIID ");
             sb.Append("left JOIN TBL_LST_MALZEMEKULLANICILAR g (nolock) on g.MALZEMEKULLANICI_ID=a.MALZEMEDEPOISTEM_ONAYKULLANICIID ");
-            sb.AppendFormat("WHERE CONVERT(VARCHAR(10),c.MALZEMECIKIS_TARIHI ,121)>={0}", "'" + Convert.ToDateTime(dateEditBasTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
-            sb.AppendFormat(" AND CONVERT(VARCHAR(10),c.MALZEMECIKIS_TARIHI ,121)<={0} ", "'" + Convert.ToDateTime(dateEditBitTarih.DateTime).ToString("yyyy-MM-dd") + "' ");
+            sb.Append("WHERE CONVERT(DATE, c.MALZEMECIKIS_TARIHI) >= @basTarih AND CONVERT(DATE, c.MALZEMECIKIS_TARIHI) <= @bitTarih ");
             sb.Append(" ORDER BY 4");
 
-            DataTable dtSiparisler = clSqlTanim.RunStoredProc(sb.ToString());
+            DataTable dtSiparisler = clSqlTanim.RunStoredProc(sb.ToString(), new[] {
+                new SqlParameter("@basTarih", SqlDbType.Date) { Value = dateEditBasTarih.DateTime.Date },
+                new SqlParameter("@bitTarih", SqlDbType.Date) { Value = dateEditBitTarih.DateTime.Date }
+            });
             gridControlSiparisIstatistik.DataSource = dtSiparisler;
 
             this.gridViewSiparisIstatistik.Columns["SİPARİŞ NO"].OptionsFilter.FilterPopupMode = DevExpress.XtraGrid.Columns.FilterPopupMode.CheckedList;

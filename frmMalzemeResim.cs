@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmMalzemeResim : Form
     {
@@ -39,7 +39,7 @@ namespace MALZEME_TAKIP_SISTEMI
             pictureBox1.MouseMove += PictureBox1_MouseMove;
             pictureBox1.MouseUp += PictureBox1_MouseUp;
 
-            // Çift tıklama → fit-to-window
+            // Çift tıklama › fit-to-window
             pictureBox1.DoubleClick += (s, e) => FitToWindow();
 
             // Global mouse wheel filtresi
@@ -139,7 +139,8 @@ namespace MALZEME_TAKIP_SISTEMI
                 }
 
                 using (var ms = new MemoryStream(img))
-                    pictureBox1.Image = new Bitmap(Image.FromStream(ms));
+                using (var tmp = Image.FromStream(ms))
+                    pictureBox1.Image = new Bitmap(tmp);
 
                 // Görüntüyü pencereye sığdır
                 FitToWindow();

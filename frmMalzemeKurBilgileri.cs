@@ -1,10 +1,11 @@
 using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmMalzemeKurBilgileri : Form
     {
@@ -28,7 +29,7 @@ namespace MALZEME_TAKIP_SISTEMI
         private void InitForm()
         {
             StringBuilder sb = new StringBuilder(1024);
-            sb.Append("SELECT TOP 5 MALZEMEDOVIZKUR_TARIH as 'TARÝH', MALZEMEDOVIZKUR_USDSATIS as 'Dolar', MALZEMEDOVIZKUR_EUROSATIS as 'Euro', MALZEMEDOVIZKUR_GBPSATIS as 'Sterlin', MALZEMEDOVIZKUR_JPYSATIS as 'Yen', MALZEMEDOVIZKUR_CHFSATIS as 'Frank', MALZEMEDOVIZKUR_RONSATIS as 'Ley' FROM TBL_LST_MALZEMEKURBILGILERI order by MALZEMEDOVIZKUR_ID desc ");
+            sb.Append("SELECT TOP 5 MALZEMEDOVIZKUR_TARIH as 'TARÄ°H', MALZEMEDOVIZKUR_USDSATIS as 'Dolar', MALZEMEDOVIZKUR_EUROSATIS as 'Euro', MALZEMEDOVIZKUR_GBPSATIS as 'Sterlin', MALZEMEDOVIZKUR_JPYSATIS as 'Yen', MALZEMEDOVIZKUR_CHFSATIS as 'Frank', MALZEMEDOVIZKUR_RONSATIS as 'Ley' FROM TBL_LST_MALZEMEKURBILGILERI order by MALZEMEDOVIZKUR_ID desc ");
             DataSet ds = new DataSet();
             ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "kurlar");
             dataGridView1.DataSource = ds.Tables[0];
@@ -52,50 +53,42 @@ namespace MALZEME_TAKIP_SISTEMI
         #region KUR_ONAYLA
         private void KUR_ONAYLA()
         {
-            StringBuilder sb = new StringBuilder(1024);
-            StringBuilder sbI = new StringBuilder(1024);
-            StringBuilder sbU = new StringBuilder(1024);
-
             try
             {
-                sb.Append("SELECT TOP 1 MALZEMEDOVIZKUR_TARIH FROM TBL_LST_MALZEMEKURBILGILERI WHERE CONVERT(VARCHAR(10), MALZEMEDOVIZKUR_TARIH, 121) = CONVERT(VARCHAR(10), '" + tarihKur.Value.ToString("yyyy-MM-dd") + "' , 121)");
-                DataSet ds = new DataSet();
-                ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "kurlar");
+                string sb = "SELECT TOP 1 MALZEMEDOVIZKUR_TARIH FROM TBL_LST_MALZEMEKURBILGILERI WHERE CONVERT(VARCHAR(10), MALZEMEDOVIZKUR_TARIH, 121) = @tarihStr";
+                DataSet ds = clSqlTanim.RunStoredProcDS(sb, "kurlar", new[] { new SqlParameter("@tarihStr", tarihKur.Value.ToString("yyyy-MM-dd")) });
+                var kurParams = new SqlParameter[]
+                {
+                    new SqlParameter("@tarih", tarihKur.Value.ToString("yyyy-MM-dd")),
+                    new SqlParameter("@dolar", txtKurDolar.Text.Replace(",", ".")),
+                    new SqlParameter("@euro", txtKurEuro.Text.Replace(",", ".")),
+                    new SqlParameter("@gbp", txtKurGbp.Text.Replace(",", ".")),
+                    new SqlParameter("@jpy", txtKurJpy.Text.Replace(",", ".")),
+                    new SqlParameter("@chf", txtKurChf.Text.Replace(",", ".")),
+                    new SqlParameter("@ron", txtKurRon.Text.Replace(",", ".")),
+                };
+
                 if (ds.Tables["kurlar"].Rows.Count == 0)
                 {
-                    sbI.Append("insert into TBL_LST_MALZEMEKURBILGILERI ( MALZEMEDOVIZKUR_TARIH, MALZEMEDOVIZKUR_USDSATIS, MALZEMEDOVIZKUR_EUROSATIS, MALZEMEDOVIZKUR_GBPSATIS, MALZEMEDOVIZKUR_JPYSATIS, MALZEMEDOVIZKUR_CHFSATIS, MALZEMEDOVIZKUR_RONSATIS ) select");
-                    sbI.AppendFormat(" '{0}'", tarihKur.Value.ToString("yyyy-MM-dd"));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurDolar.Text.Replace(",", "."), 5, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurEuro.Text.Replace(",", "."), 5, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurGbp.Text.Replace(",", "."), 5, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurJpy.Text.Replace(",", "."), 5, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurChf.Text.Replace(",", "."), 5, true));
-                    sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(txtKurRon.Text.Replace(",", "."), 5, true));
-
-
-                    clSqlTanim.RunStoredProc(sbI.ToString());
-
-                    MessageBox.Show("Bugünün Kur Bilgileri Ayarlanmýþtýr, Bugün Yapacaðýnýz Doviz Ýþlemleri Bu Bilgilere Göre Yapýlacaktýr!", "Malzeme Takip", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    string insertSql = "INSERT INTO TBL_LST_MALZEMEKURBILGILERI " +
+                        "(MALZEMEDOVIZKUR_TARIH, MALZEMEDOVIZKUR_USDSATIS, MALZEMEDOVIZKUR_EUROSATIS, " +
+                        "MALZEMEDOVIZKUR_GBPSATIS, MALZEMEDOVIZKUR_JPYSATIS, MALZEMEDOVIZKUR_CHFSATIS, MALZEMEDOVIZKUR_RONSATIS) " +
+                        "VALUES (@tarih, @dolar, @euro, @gbp, @jpy, @chf, @ron)";
+                    clSqlTanim.ExecuteNonQuery(insertSql, kurParams);
+                    MessageBox.Show("BugÃ¼nÃ¼n Kur Bilgileri AyarlanmÄ±ÅŸtÄ±r, BugÃ¼n YapacaÄŸÄ±nÄ±z Doviz Ä°ÅŸlemleri Bu Bilgilere GÃ¶re YapÄ±lacaktÄ±r!", "Malzeme Takip", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else if (ds.Tables["kurlar"].Rows.Count != 0)
                 {
-                    DialogResult secim = MessageBox.Show("Bu Tarih Önceden Girilmiþ. Yeni Bilgiler Bu Tarihin Üzerine Yazýlsýn mý?", "Malzeme Takip", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    DialogResult secim = MessageBox.Show("Bu Tarih Ã–nceden GirilmiÅŸ. Yeni Bilgiler Bu Tarihin Ãœzerine YazÄ±lsÄ±n mÄ±?", "Malzeme Takip", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                     if (secim == DialogResult.Yes)
                     {
-                        sbU.Append("Update TBL_LST_MALZEMEKURBILGILERI set ");
-                        sbU.AppendFormat("  MALZEMEDOVIZKUR_USDSATIS={0}", clGenelTanim.tosqlstring(txtKurDolar.Text.Replace(",", "."), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEDOVIZKUR_EUROSATIS={0}", clGenelTanim.tosqlstring(txtKurEuro.Text.Replace(",", "."), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEDOVIZKUR_GBPSATIS={0}", clGenelTanim.tosqlstring(txtKurGbp.Text.Replace(",", "."), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEDOVIZKUR_JPYSATIS={0}", clGenelTanim.tosqlstring(txtKurJpy.Text.Replace(",", "."), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEDOVIZKUR_RONSATIS={0}", clGenelTanim.tosqlstring(txtKurRon.Text.Replace(",", "."), 5, true));
-                        sbU.AppendFormat(" ,MALZEMEDOVIZKUR_CHFSATIS={0}", clGenelTanim.tosqlstring(txtKurChf.Text.Replace(",", "."), 5, true));
-
-                        sbU.AppendFormat(" where CONVERT(VARCHAR(10), MALZEMEDOVIZKUR_TARIH, 121)='{0}'", tarihKur.Value.ToString("yyyy-MM-dd"));
-
-                        clSqlTanim.RunStoredProc(sbU.ToString());
-
-                        MessageBox.Show("Kur Bilgileri Ayarlanmýþtýr, Yapacaðýnýz Doviz Ýþlemleri Bu Bilgilere Göre Yapýlacaktýr!", "Malzeme Takip", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
+                        string updateSql = "UPDATE TBL_LST_MALZEMEKURBILGILERI SET " +
+                            "MALZEMEDOVIZKUR_USDSATIS=@dolar, MALZEMEDOVIZKUR_EUROSATIS=@euro, " +
+                            "MALZEMEDOVIZKUR_GBPSATIS=@gbp, MALZEMEDOVIZKUR_JPYSATIS=@jpy, " +
+                            "MALZEMEDOVIZKUR_RONSATIS=@ron, MALZEMEDOVIZKUR_CHFSATIS=@chf " +
+                            "WHERE CONVERT(VARCHAR(10), MALZEMEDOVIZKUR_TARIH, 121)=@tarih";
+                        clSqlTanim.ExecuteNonQuery(updateSql, kurParams);
+                        MessageBox.Show("Kur Bilgileri AyarlanmÄ±ÅŸtÄ±r, YapacaÄŸÄ±nÄ±z Doviz Ä°ÅŸlemleri Bu Bilgilere GÃ¶re YapÄ±lacaktÄ±r!", "Malzeme Takip", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
 

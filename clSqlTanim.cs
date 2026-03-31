@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -8,7 +8,7 @@ using System.Windows.Forms;
 /// Summary description for SqlProccess
 /// </summary>
 /// 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     static class clSqlTanim
     {
@@ -21,6 +21,11 @@ namespace MALZEME_TAKIP_SISTEMI
 
         public static DataSet RunStoredProcDS(String strQuery, String strName)
         {
+            return RunStoredProcDS(strQuery, strName, null);
+        }
+
+        public static DataSet RunStoredProcDS(String strQuery, String strName, SqlParameter[] parameters)
+        {
             DataSet ds = new DataSet();
 
             try
@@ -31,6 +36,8 @@ namespace MALZEME_TAKIP_SISTEMI
                     using (SqlCommand sCommand = new SqlCommand(strQuery, conn))
                     {
                         sCommand.CommandTimeout = 600;
+                        if (parameters != null)
+                            sCommand.Parameters.AddRange(parameters);
                         using (SqlDataAdapter sAdapter = new SqlDataAdapter(sCommand))
                         {
                             sAdapter.Fill(ds, strName);
@@ -38,16 +45,21 @@ namespace MALZEME_TAKIP_SISTEMI
                     }
                 }
             }
-            catch (SqlException ex)
+            catch
             {
                 ds = null;
-                throw ex;
+                throw;
             }
 
             return ds;
         }
 
         public static DataTable RunStoredProc(String strQuery)
+        {
+            return RunStoredProc(strQuery, null);
+        }
+
+        public static DataTable RunStoredProc(String strQuery, SqlParameter[] parameters)
         {
             DataTable dt = null;
 
@@ -59,21 +71,22 @@ namespace MALZEME_TAKIP_SISTEMI
 
                     using (SqlCommand sCommand = new SqlCommand(strQuery, conn))
                     {
-                        sCommand.CommandTimeout = 600;                        
+                        sCommand.CommandTimeout = 600;
+                        if (parameters != null)
+                            sCommand.Parameters.AddRange(parameters);
 
                         using (SqlDataAdapter sAdapter = new SqlDataAdapter(sCommand))
                         {
                             dt = new DataTable();
                             sAdapter.Fill(dt);
-                       }
+                        }
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 dt = null;
-                
-                throw ex;
+                throw;
             }
 
             return dt;
@@ -105,11 +118,10 @@ namespace MALZEME_TAKIP_SISTEMI
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 dt = null;
-
-                throw ex;
+                throw;
             }
 
             return dt;
@@ -123,128 +135,68 @@ namespace MALZEME_TAKIP_SISTEMI
 
                 SqlDependency dependency = (SqlDependency)sender;
                 dependency.OnChange -= OnDataChange;
-
-                //// Re-register the SqlDependency to continue receiving notifications.
-                //RegisterDependency();
             }
         }
 
 
         public static SqlDataReader RunStoredProcDR(String strQuery)
         {
-            SqlDataReader dr = null;
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    using (SqlCommand sCommand = new SqlCommand(strQuery, conn))
-                    {
-                        conn.Open();
-                        sCommand.CommandTimeout = 600;
-                        using (SqlDataAdapter sAdapter = new SqlDataAdapter(sCommand))
-                        {
-                            dr = sCommand.ExecuteReader(CommandBehavior.CloseConnection); return dr;
-                        }
-                    }
-                }
+                // Connection kapatılmaz: reader kapatıldığında CommandBehavior.CloseConnection devreye girer
+                SqlConnection conn = new SqlConnection(connectionString);
+                SqlCommand sCommand = new SqlCommand(strQuery, conn);
+                sCommand.CommandTimeout = 600;
+                conn.Open();
+                return sCommand.ExecuteReader(CommandBehavior.CloseConnection);
             }
-            catch (SqlException ex)
+            catch
             {
-                dr = null;
-                throw ex;
+                throw;
             }
         }
 
 
         public static int ExecuteNonQuery(string sqlString)
         {
-            SqlConnection con = new SqlConnection(connectionString);
-            SqlCommand cmd = new SqlCommand(sqlString, con);
+            return ExecuteNonQuery(sqlString, null);
+        }
 
-            try
+        public static int ExecuteNonQuery(string sqlString, SqlParameter[] parameters)
+        {
+            using (var con = new SqlConnection(connectionString))
+            using (var cmd = new SqlCommand(sqlString, con))
             {
-                if (con.State != ConnectionState.Open)
-                {
-                    con.Open();
-                }
+                if (parameters != null)
+                    cmd.Parameters.AddRange(parameters);
+                con.Open();
                 return cmd.ExecuteNonQuery();
-            }
-
-            catch (SqlException ex)
-            {
-                throw ex;
-            }
-
-            finally
-            {
-                if (con.State != ConnectionState.Closed)
-                {
-                    con.Close();
-                }
             }
         }
 
         public static object ExecuteScalar(string sqlString, CommandType type, SqlParameter[] paramArray)
         {
-
-            SqlConnection con = new SqlConnection(connectionString);
-            SqlCommand cmd = new SqlCommand(sqlString, con);
-
-            cmd.CommandType = type;
-
-            if (paramArray != null)
+            using (var con = new SqlConnection(connectionString))
+            using (var cmd = new SqlCommand(sqlString, con))
             {
-                cmd.Parameters.AddRange(paramArray);
-            }
-
-            try
-            {
-                if (con.State != ConnectionState.Open)
-                {
-                    con.Open();
-                }
+                cmd.CommandType = type;
+                if (paramArray != null)
+                    cmd.Parameters.AddRange(paramArray);
+                con.Open();
                 return cmd.ExecuteScalar();
-            }
-
-            catch (SqlException ex)
-            {
-                throw ex;
-            }
-
-            finally
-            {
-                if (con.State != ConnectionState.Closed)
-                {
-                    con.Close();
-                }
             }
         }
 
         public static SqlDataReader ExecuteReader(string sqlString, CommandType type, SqlParameter[] paramArray)
         {
+            // Connection kapatılmaz: reader kapatıldığında CommandBehavior.CloseConnection devreye girer
             SqlConnection con = new SqlConnection(connectionString);
             SqlCommand cmd = new SqlCommand(sqlString, con);
-
             cmd.CommandType = type;
-
             if (paramArray != null)
-            {
                 cmd.Parameters.AddRange(paramArray);
-            }
-
-            try
-            {
-                if (con.State != ConnectionState.Open)
-                {
-                    con.Open();
-                }
-
-                return cmd.ExecuteReader((CommandBehavior.CloseConnection));
-            }
-            catch (SqlException exp)
-            {
-                throw exp;
-            }
+            con.Open();
+            return cmd.ExecuteReader(CommandBehavior.CloseConnection);
         }
 
         public static void FillTree(TreeView tr, DataTable dt)

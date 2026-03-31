@@ -1,4 +1,4 @@
-﻿namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     partial class frmMalzemeTalepAcilanlar
     {
@@ -52,6 +52,7 @@
             this.contextMenuStripTalep = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.talepNoGüncelleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.talepSilToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.talepTamamlaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gridViewMalzemeTalepleri = new DevExpress.XtraGrid.Views.Grid.GridView();
             this.layoutControlGroupMalzemeOtoTalepDetay = new DevExpress.XtraLayout.LayoutControlGroup();
             this.layoutControlItemMalzemeOtoTalepleri = new DevExpress.XtraLayout.LayoutControlItem();
@@ -59,7 +60,6 @@
             this.layoutControlItemMalzemeOtoTalepBitTarih = new DevExpress.XtraLayout.LayoutControlItem();
             this.layoutControlItemDurum = new DevExpress.XtraLayout.LayoutControlItem();
             this.emptySpaceItem1 = new DevExpress.XtraLayout.EmptySpaceItem();
-            this.talepTamamlaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.barManagerMalzemeOtoTalepDetay)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.layoutControlMalzemeOtoTalepDetay)).BeginInit();
             this.layoutControlMalzemeOtoTalepDetay.SuspendLayout();
@@ -338,21 +338,28 @@
             this.talepSilToolStripMenuItem,
             this.talepTamamlaToolStripMenuItem});
             this.contextMenuStripTalep.Name = "contextMenuStripTalep";
-            this.contextMenuStripTalep.Size = new System.Drawing.Size(245, 122);
+            this.contextMenuStripTalep.Size = new System.Drawing.Size(239, 94);
             // 
             // talepNoGüncelleToolStripMenuItem
             // 
             this.talepNoGüncelleToolStripMenuItem.Name = "talepNoGüncelleToolStripMenuItem";
-            this.talepNoGüncelleToolStripMenuItem.Size = new System.Drawing.Size(244, 30);
+            this.talepNoGüncelleToolStripMenuItem.Size = new System.Drawing.Size(238, 30);
             this.talepNoGüncelleToolStripMenuItem.Text = "Talep No Güncelle";
             this.talepNoGüncelleToolStripMenuItem.Click += new System.EventHandler(this.talepNoGüncelleToolStripMenuItem_Click);
             // 
             // talepSilToolStripMenuItem
             // 
             this.talepSilToolStripMenuItem.Name = "talepSilToolStripMenuItem";
-            this.talepSilToolStripMenuItem.Size = new System.Drawing.Size(244, 30);
+            this.talepSilToolStripMenuItem.Size = new System.Drawing.Size(238, 30);
             this.talepSilToolStripMenuItem.Text = "Talep Sil";
             this.talepSilToolStripMenuItem.Click += new System.EventHandler(this.talepSilToolStripMenuItem_Click);
+            // 
+            // talepTamamlaToolStripMenuItem
+            // 
+            this.talepTamamlaToolStripMenuItem.Name = "talepTamamlaToolStripMenuItem";
+            this.talepTamamlaToolStripMenuItem.Size = new System.Drawing.Size(238, 30);
+            this.talepTamamlaToolStripMenuItem.Text = "Talep Tamamla";
+            this.talepTamamlaToolStripMenuItem.Click += new System.EventHandler(this.talepTamamlaToolStripMenuItem_Click);
             // 
             // gridViewMalzemeTalepleri
             // 
@@ -362,6 +369,8 @@
             this.gridViewMalzemeTalepleri.OptionsBehavior.ReadOnly = true;
             this.gridViewMalzemeTalepleri.OptionsFilter.AllowAutoFilterConditionChange = DevExpress.Utils.DefaultBoolean.False;
             this.gridViewMalzemeTalepleri.OptionsPrint.AutoWidth = false;
+            this.gridViewMalzemeTalepleri.OptionsSelection.MultiSelect = true;
+            this.gridViewMalzemeTalepleri.OptionsSelection.MultiSelectMode = DevExpress.XtraGrid.Views.Grid.GridMultiSelectMode.CheckBoxRowSelect;
             this.gridViewMalzemeTalepleri.OptionsView.ColumnAutoWidth = false;
             this.gridViewMalzemeTalepleri.OptionsView.ShowAutoFilterRow = true;
             this.gridViewMalzemeTalepleri.OptionsView.ShowFooter = true;
@@ -449,13 +458,6 @@
             this.emptySpaceItem1.Name = "emptySpaceItem1";
             this.emptySpaceItem1.Size = new System.Drawing.Size(558, 41);
             this.emptySpaceItem1.TextSize = new System.Drawing.Size(0, 0);
-            // 
-            // talepTamamlaToolStripMenuItem
-            // 
-            this.talepTamamlaToolStripMenuItem.Name = "talepTamamlaToolStripMenuItem";
-            this.talepTamamlaToolStripMenuItem.Size = new System.Drawing.Size(244, 30);
-            this.talepTamamlaToolStripMenuItem.Text = "Talep Tamamla";
-            this.talepTamamlaToolStripMenuItem.Click += new System.EventHandler(this.talepTamamlaToolStripMenuItem_Click);
             // 
             // frmMalzemeTalepAcilanlar
             // 

@@ -1,17 +1,18 @@
-﻿using DevExpress.Utils;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
-using MALZEME_TAKIP_SISTEMI.DevExpressExtentions;
+using MALZEMETAKIPSISTEMI.DevExpressExtentions;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
-    public partial class frmKullaniciEkle : Form
+    public partial class frmKullaniciEkle : FrmBase
     {
         private int currentKullaniciID = -1;
         private DataSet dsKullanici = null;
@@ -21,13 +22,6 @@ namespace MALZEME_TAKIP_SISTEMI
         public frmKullaniciEkle()
         {
             InitializeComponent();
-        }
-
-        void SetGridFont(GridView view, Font font)
-        {
-            foreach (AppearanceObject ap in view.Appearance)
-
-                ap.Font = font;
         }
 
         private void KontrolVeriIliskileriniAyarla()
@@ -87,9 +81,10 @@ namespace MALZEME_TAKIP_SISTEMI
             sb.Append("SELECT MALZEMEKULLANICI_ID , MALZEMEKULLANICI_KODU AS 'KULLANICI KODU', MALZEMEKULLANICI_ADI AS 'KULLANICI ADI', MALZEMEKULLANICI_DEPARTMAN AS 'BOLUMU',");
             sb.Append("MALZEMEKULLANICI_SIFRE AS 'KULLANICI ŞİFRE', MALZEMEKULLANICI_DURUM AS 'KULLANILIYOR', MALZEMEKULLANICI_OPERATOR AS 'OPERATOR', MALZEMEKULLANICI_SIPARISKAPAT AS 'SIPARIS KAPAT', MALZEMEKULLANICI_YONETICI AS 'YONETICI' ");
             sb.Append("FROM TBL_LST_MALZEMEKULLANICILAR (NOLOCK) ");
-            sb.AppendFormat("WHERE MALZEMEKULLANICI_ID={0}", kullaniciId.ToString());
+            sb.Append("WHERE MALZEMEKULLANICI_ID=@id");
 
-            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "KS");
+            var parameters = new[] { new SqlParameter("@id", kullaniciId) };
+            DataSet ds = clSqlTanim.RunStoredProcDS(sb.ToString(), "KS", parameters);
             this.dsKullanici = ds;
 
             KullaniciBilgileriniDoldur(ds);
@@ -124,65 +119,65 @@ namespace MALZEME_TAKIP_SISTEMI
             DataTable dtKullanici = this.yeniKullanici ? null : dsKullanici.Tables[0];
             DataRow rowDepartman = dtKullanici == null ? null : dtKullanici.Rows[0];
 
-            StringBuilder sbI = new StringBuilder(512);
-            StringBuilder sbU = new StringBuilder(512);
             if (DialogResult.Yes == XtraMessageBox.Show("Değişiklikler Kaydedilsin mi?", "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
                 try
                 {
                     if (rowDepartman == null)
                     {
-                        sbI.Append("insert into TBL_LST_MALZEMEKULLANICILAR ( MALZEMEKULLANICI_KODU , MALZEMEKULLANICI_ADI, MALZEMEKULLANICI_SIFRE, MALZEMEKULLANICI_DURUM, MALZEMEKULLANICI_OPERATOR, MALZEMEKULLANICI_SIPARISKAPAT, MALZEMEKULLANICI_YONETICI, MALZEMEKULLANICI_DEPARTMAN ) select");
-                        sbI.AppendFormat("  {0}", clGenelTanim.tosqlstring(textEditKullaniciKodu.Text.ToString(), 50, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditKullaniciAdi.Text.ToString(), 50, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.tosqlstring(textEditKullaniciSifre.Text.ToString(), 50, true));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditKullaniciDurum.Checked));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditKullaniciOperator.Checked));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditKullaniciSiparisKapat.Checked));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditKullaniciYonetici.Checked));
-                        sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(comboBoxEditBolumu.SecilenDeger().Id.ToString()));
-                        //sbI.AppendFormat(" ,{0}", clGenelTanim.DBToInt32(checkEditDokumaOrgu.Checked));
-
-
-                        DataTable dt = clSqlTanim.RunStoredProc(sbI.ToString());
-                        if (dt != null && dt.Rows.Count > 0)
+                        string insertSql = "INSERT INTO TBL_LST_MALZEMEKULLANICILAR " +
+                            "(MALZEMEKULLANICI_KODU, MALZEMEKULLANICI_ADI, MALZEMEKULLANICI_SIFRE, " +
+                            "MALZEMEKULLANICI_DURUM, MALZEMEKULLANICI_OPERATOR, MALZEMEKULLANICI_SIPARISKAPAT, " +
+                            "MALZEMEKULLANICI_YONETICI, MALZEMEKULLANICI_DEPARTMAN) " +
+                            "VALUES (@kodu, @adi, @sifre, @durum, @operator, @siparisKapat, @yonetici, @departman); " +
+                            "SELECT SCOPE_IDENTITY()";
+                        var insertParams = new SqlParameter[]
                         {
-                            this.currentKullaniciID = clGenelTanim.DBToInt32(dt.Rows[0][0]);
-                        }
-                        else
-                        {
-                            this.currentKullaniciID = -1;
-                        }
-
+                            new SqlParameter("@kodu", textEditKullaniciKodu.Text),
+                            new SqlParameter("@adi", textEditKullaniciAdi.Text),
+                            new SqlParameter("@sifre", textEditKullaniciSifre.Text),
+                            new SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditKullaniciDurum.Checked)),
+                            new SqlParameter("@operator", clGenelTanim.DBToInt32(checkEditKullaniciOperator.Checked)),
+                            new SqlParameter("@siparisKapat", clGenelTanim.DBToInt32(checkEditKullaniciSiparisKapat.Checked)),
+                            new SqlParameter("@yonetici", clGenelTanim.DBToInt32(checkEditKullaniciYonetici.Checked)),
+                            new SqlParameter("@departman", clGenelTanim.DBToInt32(comboBoxEditBolumu.SecilenDeger().Id.ToString())),
+                        };
+                        DataTable dt = clSqlTanim.RunStoredProc(insertSql, insertParams);
+                        this.currentKullaniciID = (dt != null && dt.Rows.Count > 0)
+                            ? clGenelTanim.DBToInt32(dt.Rows[0][0])
+                            : -1;
                     }
                     else
                     {
-                        sbU.Append("update TBL_LST_MALZEMEKULLANICILAR set ");
-                        sbU.AppendFormat("  MALZEMEKULLANICI_KODU={0}", clGenelTanim.tosqlstring(textEditKullaniciKodu.Text.ToString(), 50, true));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_ADI={0}", clGenelTanim.tosqlstring(textEditKullaniciAdi.Text.ToString(), 50, true));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_SIFRE={0}", clGenelTanim.tosqlstring(textEditKullaniciSifre.Text.ToString(), 50, true));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_DURUM={0}", clGenelTanim.DBToInt32(checkEditKullaniciDurum.Checked));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_OPERATOR={0}", clGenelTanim.DBToInt32(checkEditKullaniciOperator.Checked));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_SIPARISKAPAT={0}", clGenelTanim.DBToInt32(checkEditKullaniciSiparisKapat.Checked));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_YONETICI={0}", clGenelTanim.DBToInt32(checkEditKullaniciYonetici.Checked));
-                        sbU.AppendFormat(" ,MALZEMEKULLANICI_DEPARTMAN={0}", clGenelTanim.DBToInt32(comboBoxEditBolumu.SecilenDeger().Id.ToString()));
-                        sbU.AppendFormat(" where MALZEMEKULLANICI_ID={0}", clGenelTanim.DBToInt32(textEditKullaniciNo.Text.ToString()));
-
-                        clSqlTanim.RunStoredProc(sbU.ToString());
+                        string updateSql = "UPDATE TBL_LST_MALZEMEKULLANICILAR SET " +
+                            "MALZEMEKULLANICI_KODU=@kodu, MALZEMEKULLANICI_ADI=@adi, MALZEMEKULLANICI_SIFRE=@sifre, " +
+                            "MALZEMEKULLANICI_DURUM=@durum, MALZEMEKULLANICI_OPERATOR=@operator, " +
+                            "MALZEMEKULLANICI_SIPARISKAPAT=@siparisKapat, MALZEMEKULLANICI_YONETICI=@yonetici, " +
+                            "MALZEMEKULLANICI_DEPARTMAN=@departman " +
+                            "WHERE MALZEMEKULLANICI_ID=@id";
+                        var updateParams = new SqlParameter[]
+                        {
+                            new SqlParameter("@kodu", textEditKullaniciKodu.Text),
+                            new SqlParameter("@adi", textEditKullaniciAdi.Text),
+                            new SqlParameter("@sifre", textEditKullaniciSifre.Text),
+                            new SqlParameter("@durum", clGenelTanim.DBToInt32(checkEditKullaniciDurum.Checked)),
+                            new SqlParameter("@operator", clGenelTanim.DBToInt32(checkEditKullaniciOperator.Checked)),
+                            new SqlParameter("@siparisKapat", clGenelTanim.DBToInt32(checkEditKullaniciSiparisKapat.Checked)),
+                            new SqlParameter("@yonetici", clGenelTanim.DBToInt32(checkEditKullaniciYonetici.Checked)),
+                            new SqlParameter("@departman", clGenelTanim.DBToInt32(comboBoxEditBolumu.SecilenDeger().Id.ToString())),
+                            new SqlParameter("@id", clGenelTanim.DBToInt32(textEditKullaniciNo.Text)),
+                        };
+                        clSqlTanim.ExecuteNonQuery(updateSql, updateParams);
                     }
 
-                    if (sbI.Length > 50 || sbU.Length > 50)
-                    {
-                        InitForm();
-                        XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        this.simpleButtonKullaniciKaydet.Enabled = false;
-                        this.textEditKullaniciKodu.Enabled = false;
-                        this.textEditKullaniciSifre.Enabled = false;
-                        this.textEditKullaniciAdi.Enabled = false;
-                        this.comboBoxEditBolumu.Enabled = false;
-                        kullaniciSec(this.currentKullaniciID);
-
-                    }
+                    InitForm();
+                    XtraMessageBox.Show("Kayıt İşlemi Başarılı...", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.simpleButtonKullaniciKaydet.Enabled = false;
+                    this.textEditKullaniciKodu.Enabled = false;
+                    this.textEditKullaniciSifre.Enabled = false;
+                    this.textEditKullaniciAdi.Enabled = false;
+                    this.comboBoxEditBolumu.Enabled = false;
+                    kullaniciSec(this.currentKullaniciID);
                 }
                 catch (Exception ex) { XtraMessageBox.Show(ex.Message); }
             }
@@ -257,10 +252,8 @@ namespace MALZEME_TAKIP_SISTEMI
 
             if (DialogResult.Yes == XtraMessageBox.Show(title, "Soru", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
             {
-                StringBuilder sbD = new StringBuilder(300);
-                sbD.AppendFormat("delete from TBL_LST_MALZEMEKULLANICILAR where MALZEMEKULLANICI_ID={0}", this.currentKullaniciID);
-
-                clSqlTanim.ExecuteNonQuery(sbD.ToString());
+                var deleteParams = new[] { new SqlParameter("@id", this.currentKullaniciID) };
+                clSqlTanim.ExecuteNonQuery("DELETE FROM TBL_LST_MALZEMEKULLANICILAR WHERE MALZEMEKULLANICI_ID=@id", deleteParams);
 
                 InitForm();
 

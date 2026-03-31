@@ -5,7 +5,7 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
 
     /// <summary>
@@ -208,8 +208,8 @@ namespace MALZEME_TAKIP_SISTEMI
 
     public class Turkce
     {
-        public static string[] gunler = { "Pazar", "Pazartesi", "Salý", "Çarþamba", "Perþembe", "Cuma", "Cumartesi" };
-        public static string[] aylar = { "Ocak", "Þubat", "Mart", "Nisan", "Mayýs", "Haziran", "Temmuz", "Aðustos", "Eylül", "Ekim", "Kasým", "Aralýk" };
+        public static string[] gunler = { "Pazar", "Pazartesi", "SalÄ±", "Ã‡arÅŸamba", "PerÅŸembe", "Cuma", "Cumartesi" };
+        public static string[] aylar = { "Ocak", "Åžubat", "Mart", "Nisan", "MayÄ±s", "Haziran", "Temmuz", "AÄŸustos", "EylÃ¼l", "Ekim", "KasÄ±m", "AralÄ±k" };
     }
     public class clTaniBilgisi
     {
@@ -287,7 +287,7 @@ public class DevCmbBoxItem
     }
 }
 
-namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
+namespace MALZEMETAKIPSISTEMI.DevExpressExtentions
 {
     using DevExpress.XtraEditors;
 
@@ -309,7 +309,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             pageheader.Header.LineAlignment = DevExpress.XtraPrinting.BrickAlignment.Center;
             pageheader.Header.Font = new System.Drawing.Font(System.Drawing.FontFamily.GenericSansSerif, 11, System.Drawing.FontStyle.Bold);
             link.CreateDocument();
-            link.ShowPreview(); // yan yazdýrmaz için landspace
+            link.ShowPreview(); // yan yazdÄ±rmaz iÃ§in landspace
             link.Dispose();
         }
 
@@ -433,7 +433,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             {
                 if (firstEmpty)
                 {
-                    DevCmbBoxItem itm = new DevCmbBoxItem(-1, string.IsNullOrEmpty(emptyText) ? "<<Seçiniz>>" : emptyText);
+                    DevCmbBoxItem itm = new DevCmbBoxItem(-1, string.IsNullOrEmpty(emptyText) ? "<<SeÃ§iniz>>" : emptyText);
                     cmb.Properties.Items.Add(itm);
                 }
 
@@ -474,7 +474,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             {
                 if (firstEmpty)
                 {
-                    DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<Þeçiniz>>");
+                    DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<ÅžeÃ§iniz>>");
                     cmb.Properties.Items.Add(bosItem);
                 }
 
@@ -497,11 +497,11 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             cmb.SelectedIndex = -1;
         }
         /// <summary>
-        /// verilen ComboBoxEdit kontrolunu aylar (ID,AY) (1..12,Ocak..Aralýk) ile doldurur. 
+        /// verilen ComboBoxEdit kontrolunu aylar (ID,AY) (1..12,Ocak..AralÄ±k) ile doldurur. 
         /// </summary>
         /// <param name="cmb"></param>
-        /// <param name="oncekiAyiSec">true önceki ayi seçer,false içinde bulunulan ayi seçer</param>
-        /// <returns>ocak ayinda onceki ay seçilirse yilin da deðiþmesi gerektiðini belirtir</returns>
+        /// <param name="oncekiAyiSec">true Ã¶nceki ayi seÃ§er,false iÃ§inde bulunulan ayi seÃ§er</param>
+        /// <returns>ocak ayinda onceki ay seÃ§ilirse yilin da deÄŸiÅŸmesi gerektiÄŸini belirtir</returns>
         public static bool DoldurAylar(this DevExpress.XtraEditors.ComboBoxEdit cmb, bool oncekiAyiSec)
         {
             bool yilAsimi = false;
@@ -565,7 +565,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             {
                 if (firstEmpty)
                 {
-                    DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<Seçiniz>>");
+                    DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<SeÃ§iniz>>");
                     cmb.Properties.Items.Add(bosItem);
                 }
 
@@ -653,7 +653,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             }
         }
         /// <summary>
-        /// BarEditItem daki Combobox larý doldurmak için kullanýlýr
+        /// BarEditItem daki Combobox larÄ± doldurmak iÃ§in kullanÄ±lÄ±r
         /// </summary>
         /// <param name="e">BarEditItem</param>
         /// <param name="query">SQL query</param>
@@ -671,7 +671,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
                     rcombo.Properties.Items.Clear();
                     if (firstEmpty)
                     {
-                        DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<Þeçiniz>>");
+                        DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<ÅžeÃ§iniz>>");
                         rcombo.Properties.Items.Add(bosItem);
                     }
                     foreach (DataRow dr in dt.Rows)
@@ -693,7 +693,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
             }
         }
         /// <summary>
-        /// BarEditItem daki Combobox larý doldurmak için kullanýlýr
+        /// BarEditItem daki Combobox larÄ± doldurmak iÃ§in kullanÄ±lÄ±r
         /// </summary>
         /// <param name="e">BarEditItem</param>
         /// <param name="DevCmbBoxItem">Disarida olusturulmus item dizisi</DevCmbBoxItem>
@@ -709,7 +709,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
                     rcombo.Properties.Items.Clear();
                     if (firstEmpty)
                     {
-                        DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<Þeçiniz>>");
+                        DevCmbBoxItem bosItem = new DevCmbBoxItem(-1, "<<ÅžeÃ§iniz>>");
                         rcombo.Properties.Items.Add(bosItem);
                     }
                     foreach (DevCmbBoxItem item in items)
@@ -726,7 +726,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
         }
         #endregion
         /// <summary>
-        /// virgul yada baska bir simge ile ayrilmis sayilara göre eþleþen list box items lari checkler
+        /// virgul yada baska bir simge ile ayrilmis sayilara gÃ¶re eÅŸleÅŸen list box items lari checkler
         /// </summary>
         /// <param name="lst">listbox</param>
         /// <param name="strValue">aranacak deger</param>
@@ -929,7 +929,7 @@ namespace MALZEME_TAKIP_SISTEMI.DevExpressExtentions
 
         }
         /// <summary>
-        /// verilen columnu verilen kontrolun deðeriyle karþýlaþtýrýr (Devexpress kontrolleri)
+        /// verilen columnu verilen kontrolun deÄŸeriyle karÅŸÄ±laÅŸtÄ±rÄ±r (Devexpress kontrolleri)
         /// </summary>
         /// <param name="row">DataTable.row</param>
         /// <param name="alanAdi">Alan ADI</param>

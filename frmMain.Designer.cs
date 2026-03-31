@@ -1,4 +1,4 @@
-﻿namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     partial class frmMain
     {

@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Net;
 using System.Windows.Forms;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class frmGiris : Form
     {
@@ -18,10 +19,13 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             try
             {
-                string strSQL = "exec sel_Giris ";
-                strSQL += clGenelTanim.tosqlstring(textBoxKullaniciAdi.Text, 50, true);
-                strSQL += "," + clGenelTanim.tosqlstring(textBoxKullaniciSifre.Text, 20, true);
-                ds = clSqlTanim.RunStoredProcDS(strSQL, "ds");
+                ds = clSqlTanim.RunStoredProcDS(
+                    "exec sel_Giris @kullaniciAdi, @sifre",
+                    "ds",
+                    new[] {
+                        new SqlParameter("@kullaniciAdi", textBoxKullaniciAdi.Text),
+                        new SqlParameter("@sifre",        textBoxKullaniciSifre.Text)
+                    });
                 if (ds == null) return;
                 if (ds.Tables.Count < 1) return;
                 foreach (DataRow dr in ds.Tables[0].Rows)
@@ -29,8 +33,8 @@ namespace MALZEME_TAKIP_SISTEMI
                     clGenelTanim.KullaniciKodu = clGenelTanim.DBToInt32(dr["KID"]);
                     clGenelTanim.strHostName = clGenelTanim.DBToString(dr["HOSTNAME"]);
                     clGenelTanim.currentYoneticiMi = clGenelTanim.DBToInt32(dr["YONETICIMI"]);
-                    clGenelTanim.currentMalzemeKullanıcıDepartmanId = clGenelTanim.DBToInt32(dr["MALZEMEKULLANICI_DEPARTMANID"]);
-                    clGenelTanim.currentMalzemeKullanıcıDepartmanAdi = clGenelTanim.DBToString(dr["MALZEMEKULLANICI_DEPARTMANADI"]);
+                    clGenelTanim.currentMalzemeKullaniciDepartmanId = clGenelTanim.DBToInt32(dr["MALZEMEKULLANICI_DEPARTMANID"]);
+                    clGenelTanim.currentMalzemeKullaniciDepartmanAdi = clGenelTanim.DBToString(dr["MALZEMEKULLANICI_DEPARTMANADI"]);
 
                     frmGirisEkran formgiris = new frmGirisEkran();
                     formgiris.Show();

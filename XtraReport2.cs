@@ -1,4 +1,4 @@
-﻿namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public partial class XtraReport2 : DevExpress.XtraReports.UI.XtraReport
     {

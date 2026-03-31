@@ -6,15 +6,14 @@ using System.IO;
 using System.Windows.Forms;
 using static DevExpress.XtraPrinting.Native.ExportOptionsPropertiesNames;
 
-namespace MALZEME_TAKIP_SISTEMI
+namespace MALZEMETAKIPSISTEMI
 {
     public class clGenelTanim
     {
-        public static SqlDataReader dr;
         public static int KullaniciKodu = -1;
         public static int currentYoneticiMi = -1;
-        public static int currentMalzemeKullanıcıDepartmanId = -1;
-        public static string currentMalzemeKullanıcıDepartmanAdi = "";
+        public static int currentMalzemeKullaniciDepartmanId = -1;
+        public static string currentMalzemeKullaniciDepartmanAdi = "";
         public static string strHostName = "";
         public static DateTime dateNull = new DateTime(1900, 1, 1);
         public static int currentMalzemeDepoIstemID = -1;
@@ -215,7 +214,7 @@ namespace MALZEME_TAKIP_SISTEMI
             }
             else
             {
-                Mesajor("İşlem Eptal Edildi, Tekrar Deneyiniz.");
+                Mesajor("İşlem İptal Edildi, Tekrar Deneyiniz.");
                 dialog.Dispose();
             }
         }
@@ -271,44 +270,31 @@ namespace MALZEME_TAKIP_SISTEMI
             }
             else
             {
-                Mesajor("İşlem Eptal Edildi, Tekrar Deneyiniz.");
                 dialog.Dispose();
             }
         }
 
         public static void Mesajor(string Mesajınız)
         {
-            //FrmMesaj frm = new FrmMesaj();
-            //frm.label1.Text = Mesajınız;
-            //frm.simpleButton1.Visible = false;
-            //frm.simpleButton2.Visible = false;
-            //frm.timer1.Interval = 1500;
-            //frm.timer1.Start();
-            //if (Form.ActiveForm.IsMdiContainer == true)
-            //{ frm.MdiParent = Form.ActiveForm; }
-            //else
-            //{ frm.MdiParent = Form.ActiveForm.MdiParent; }
-            //frm.Show();
         }
 
         public static bool WriteFilmImagetoSQL(string Action, int Index, byte[] picbyte)
         {
             try
             {
-                SqlConnection conn = new SqlConnection(clSqlTanim.connectionString);
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("up_Platform_FilmResim", conn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
-                cmd.Parameters.Add(new SqlParameter("@FilmKodu", SqlDbType.Int, 0));
-                cmd.Parameters.Add(new SqlParameter("@ResimDosya", SqlDbType.Image, 2147483647));
-
-                cmd.Parameters["@Action"].Value = Action;
-                cmd.Parameters["@FilmKodu"].Value = Index;
-                cmd.Parameters["@ResimDosya"].Value = picbyte;
-                dr = cmd.ExecuteReader();
+                using (var conn = new SqlConnection(clSqlTanim.connectionString))
+                using (var cmd = new SqlCommand("up_Platform_FilmResim", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
+                    cmd.Parameters.Add(new SqlParameter("@FilmKodu", SqlDbType.Int, 0));
+                    cmd.Parameters.Add(new SqlParameter("@ResimDosya", SqlDbType.Image, 2147483647));
+                    cmd.Parameters["@Action"].Value = Action;
+                    cmd.Parameters["@FilmKodu"].Value = Index;
+                    cmd.Parameters["@ResimDosya"].Value = picbyte;
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                }
             }
             catch (Exception)
             {
@@ -321,20 +307,19 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             try
             {
-                SqlConnection conn = new SqlConnection(clSqlTanim.connectionString);
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("up_Platform_MuzikResim", conn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
-                cmd.Parameters.Add(new SqlParameter("@MuzikKodu", SqlDbType.Int, 0));
-                cmd.Parameters.Add(new SqlParameter("@ResimDosya", SqlDbType.Image, 2147483647));
-
-                cmd.Parameters["@Action"].Value = Action;
-                cmd.Parameters["@MuzikKodu"].Value = Index;
-                cmd.Parameters["@ResimDosya"].Value = picbyte;
-                dr = cmd.ExecuteReader();
+                using (var conn = new SqlConnection(clSqlTanim.connectionString))
+                using (var cmd = new SqlCommand("up_Platform_MuzikResim", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
+                    cmd.Parameters.Add(new SqlParameter("@MuzikKodu", SqlDbType.Int, 0));
+                    cmd.Parameters.Add(new SqlParameter("@ResimDosya", SqlDbType.Image, 2147483647));
+                    cmd.Parameters["@Action"].Value = Action;
+                    cmd.Parameters["@MuzikKodu"].Value = Index;
+                    cmd.Parameters["@ResimDosya"].Value = picbyte;
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                }
             }
             catch (Exception)
             {
@@ -347,19 +332,18 @@ namespace MALZEME_TAKIP_SISTEMI
         {
             try
             {
-                SqlConnection conn = new SqlConnection(clSqlTanim.connectionString);
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("up_Malzeme_ResimKaydet", conn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
-                cmd.Parameters.Add(new SqlParameter("@MalzemeId", SqlDbType.Int, 0));
-                cmd.Parameters.Add(new SqlParameter("@MalzemeResimDosya", SqlDbType.Image));
-
-                cmd.Parameters["@Action"].Value = Action;
-                cmd.Parameters["@MalzemeId"].Value = Index;
-                dr = cmd.ExecuteReader();
+                using (var conn = new SqlConnection(clSqlTanim.connectionString))
+                using (var cmd = new SqlCommand("up_Malzeme_ResimKaydet", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@Action", SqlDbType.VarChar, 1));
+                    cmd.Parameters.Add(new SqlParameter("@MalzemeId", SqlDbType.Int, 0));
+                    cmd.Parameters.Add(new SqlParameter("@MalzemeResimDosya", SqlDbType.Image));
+                    cmd.Parameters["@Action"].Value = Action;
+                    cmd.Parameters["@MalzemeId"].Value = Index;
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                }
             }
             catch (Exception)
             {
@@ -367,22 +351,6 @@ namespace MALZEME_TAKIP_SISTEMI
             }
             return true;
         }
-
-        //public static Image ShowImage(byte[] oImgByteArray)
-        //{
-        //    try
-        //    {
-        //        MemoryStream stream = new MemoryStream();
-        //        stream.Write(oImgByteArray, 0, oImgByteArray.Length);
-        //        System.Drawing.Image x = System.Drawing.Image.FromStream(stream);
-        //        return x;
-        //    }
-        //    catch (Exception)
-        //    {
-        //        return null;
-        //    }
-
-        //}
 
     }
 
