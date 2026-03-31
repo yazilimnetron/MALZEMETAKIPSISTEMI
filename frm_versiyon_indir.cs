@@ -45,7 +45,7 @@ namespace MALZEMETAKIPSISTEMI
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("�ndirme hatas�: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("İndirme hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
@@ -60,9 +60,13 @@ namespace MALZEMETAKIPSISTEMI
             string tar;
             private void Client_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
             {
+                string exePath = Application.StartupPath + "\\MALZEMETAKIPSISTEMI.exe";
+                string geciciPath = Application.StartupPath + "\\malzeme_takip";
+
                 if (e.Error != null)
                 {
-                    MessageBox.Show("�ndirme tamamlanamad�: " + e.Error.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("İndirme tamamlanamadı: " + e.Error.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    if (File.Exists(geciciPath)) File.Delete(geciciPath);
                     return;
                 }
 
@@ -70,17 +74,31 @@ namespace MALZEMETAKIPSISTEMI
                 {
                     DateTime tarih = DateTime.Now;
                     tar = tarih.ToString("yyyy-MM-dd hh-mm");
+                    string yedekPath = Application.StartupPath + "\\old_malzemetakip" + tar + ".exe";
 
-                    File.Move(Application.StartupPath + "\\MALZEMETAKIPSISTEMI.exe", Application.StartupPath + "\\old_malzemetakip" + tar + ".exe");
-                    File.Move(Application.StartupPath + "\\malzeme_takip", Application.StartupPath + "\\MALZEMETAKIPSISTEMI.exe");
+                    File.Move(exePath, yedekPath);
+                    File.Move(geciciPath, exePath);
 
-                    MessageBox.Show("Dosya indirme tamamland� !!!");
-                    System.Diagnostics.Process.Start(Application.StartupPath + "\\MALZEMETAKIPSISTEMI.exe");
+                    MessageBox.Show("Güncelleme tamamlandı!");
+                    System.Diagnostics.Process.Start(exePath);
                     Application.Exit();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("G�ncelleme hatas�: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Rollback: yedekten geri yükle
+                    string yedekPath = Application.StartupPath + "\\old_malzemetakip" + tar + ".exe";
+                    try
+                    {
+                        if (File.Exists(yedekPath))
+                        {
+                            if (File.Exists(exePath)) File.Delete(exePath);
+                            File.Move(yedekPath, exePath);
+                        }
+                        if (File.Exists(geciciPath)) File.Delete(geciciPath);
+                    }
+                    catch { }
+
+                    MessageBox.Show("Güncelleme başarısız, eski sürüm geri yüklendi.\n" + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

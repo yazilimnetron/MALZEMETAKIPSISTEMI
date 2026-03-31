@@ -65,17 +65,11 @@ namespace MALZEMETAKIPSISTEMI
 
                 if (CheckUpdate())
                 {
-                    DialogResult dialog = MessageBox.Show("Yeni güncellemeler var. \n\rŞimdi Yüklemek istermisiniz?", "Güncelleme Bulundu", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if (dialog == DialogResult.Yes)
-                    {
-                        //System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(updateMe));
-                        //t.Start();
+                    MessageBox.Show("Yeni güncelleme bulundu, indirme başlıyor...", "Güncelleme", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                        frm_versiyon_indir frm = new frm_versiyon_indir();
-                        frm.ShowDialog();
-
-                        this.Close();
-                    }
+                    frm_versiyon_indir frm = new frm_versiyon_indir();
+                    frm.ShowDialog();
+                    this.Close();
                 }
             }
             catch (Exception a)
